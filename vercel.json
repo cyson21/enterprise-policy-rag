@@ -1,0 +1,11 @@
+{
+  "buildCommand": "node scripts/run-web-task.mjs build:static",
+  "installCommand": "corepack enable pnpm && pnpm install --frozen-lockfile",
+  "outputDirectory": "web/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

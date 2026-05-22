@@ -1,0 +1,22 @@
+# Changed Files
+
+- `app/eval_runs.py`
+  - Adds eval run repository protocol, in-memory repository, PostgreSQL repository, and row mapping.
+- `app/services.py`
+  - Adds eval run repository dependency to shared services.
+- `app/runtime.py`
+  - Selects PostgreSQL eval repository when `DATABASE_URL` is set.
+- `app/evaluation.py`
+  - Persists eval runs on `POST /eval-runs` and reads stored history on `GET /eval-runs`.
+- `infra/postgres/init/001_schema.sql`
+  - Adds `eval_runs` and `eval_case_results` tables and indexes.
+- `tests/test_eval_api.py`
+  - Adds API test proving created eval runs are persisted in history.
+- `tests/test_eval_runs.py`
+  - Adds repository tests for in-memory and PostgreSQL eval persistence.
+- `tests/test_runtime_storage.py`
+  - Covers eval repository selection.
+- `tests/test_postgres_runtime_integration.py`
+  - Extends PostgreSQL runtime smoke to cover eval persistence.
+- `README.md`, `TODO.md`, `docs/project-tracking.md`, `docs/next-agent-bootstrap.md`, `docs/api-data-model.md`, `docs/runbooks/local-demo.md`, `docs/portfolio-one-pager.md`
+  - Update current implementation, schema/API docs, verification count, and next-step guidance.

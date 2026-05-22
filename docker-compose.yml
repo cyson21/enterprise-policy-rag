@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: enterprise-policy-rag-postgres
+    environment:
+      POSTGRES_DB: enterprise_policy_rag
+      POSTGRES_USER: rag_app
+      POSTGRES_PASSWORD: rag_app_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_app -d enterprise_policy_rag"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:

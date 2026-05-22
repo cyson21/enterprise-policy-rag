@@ -1,0 +1,26 @@
+# Changed Files
+
+- `app/models.py`
+  - Adds Top Evidence response models.
+- `app/query_logs.py`
+  - Adds retrieval result, answer, citation persistence methods and top evidence aggregation for in-memory and PostgreSQL repositories.
+- `app/services.py`
+  - Persists retrieval results and answer/citation details after query logs are written.
+- `app/main.py`
+  - Adds `GET /evidence/top` to FastAPI and Starlette fallback paths.
+- `infra/postgres/init/001_schema.sql`
+  - Adds `retrieval_results`, `answers`, and `citations` tables and indexes.
+- `tests/test_operations_api.py`
+  - Verifies `/evidence/top` counts retrieval results and answer citations.
+- `tests/test_query_logs.py`
+  - Verifies in-memory and PostgreSQL evidence detail persistence and top evidence mapping.
+- `tests/test_postgres_runtime_integration.py`
+  - Extends runtime PostgreSQL smoke to verify top evidence output.
+- `web/src/api/client.ts`
+  - Adds Top Evidence API types, loader, and fallback rows.
+- `web/src/routes/operations/OperationsPage.tsx`
+  - Adds Top Evidence table.
+- `web/scripts/smoke.mjs`
+  - Extends frontend smoke coverage for Top Evidence.
+- `README.md`, `TODO.md`, `docs/project-tracking.md`, `docs/next-agent-bootstrap.md`, `docs/api-data-model.md`, `docs/runbooks/local-demo.md`, `docs/portfolio-one-pager.md`, `docs/assets/architecture.svg`
+  - Update implementation status, API/schema docs, runbook verification count, and next-step guidance.
