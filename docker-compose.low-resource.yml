@@ -1,0 +1,17 @@
+services:
+  postgres:
+    cpus: 1.0
+    mem_limit: 512m
+    shm_size: 64m
+    command:
+      - postgres
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - max_connections=20
+      - -c
+      - effective_cache_size=256MB

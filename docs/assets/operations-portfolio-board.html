@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Enterprise Policy RAG Portfolio Board</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        width: 1600px;
+        height: 1000px;
+        overflow: hidden;
+        background: #eaf1f2;
+        color: #162326;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 370px;
+        gap: 28px;
+        width: 1600px;
+        height: 1000px;
+        padding: 34px;
+      }
+
+      .panel {
+        min-width: 0;
+        border: 1px solid #cbd8db;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: 0 22px 60px rgba(18, 38, 45, 0.11);
+        overflow: hidden;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 18px;
+        border-bottom: 1px solid #d7e0e2;
+      }
+
+      .panel-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 760;
+      }
+
+      .panel-kicker {
+        color: #0f766e;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      .desktop-frame {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .desktop-shot {
+        width: 100%;
+        height: 858px;
+        object-fit: contain;
+        object-position: top center;
+        background: #f7fbfb;
+      }
+
+      .side-stack {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 28px;
+        min-width: 0;
+      }
+
+      .mobile-frame {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .mobile-shot {
+        width: 100%;
+        height: 373px;
+        object-fit: contain;
+        object-position: top center;
+        background: #f7fbfb;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="board">
+      <section class="panel desktop-frame">
+        <header class="panel-header">
+          <div>
+            <div class="panel-kicker">운영 지표</div>
+            <h1 class="panel-title">데스크톱 운영 지표 전체 화면</h1>
+          </div>
+          <div class="panel-kicker">1440 x 1650 source</div>
+        </header>
+        <img
+          class="desktop-shot"
+          src="./operations-demo-ko-v3-desktop-full.jpg"
+          alt="Enterprise Policy RAG desktop operations screenshot"
+        />
+      </section>
+
+      <aside class="side-stack">
+        <section class="panel mobile-frame">
+          <header class="panel-header">
+            <div>
+              <div class="panel-kicker">모바일 요약</div>
+              <h2 class="panel-title">KPI 요약</h2>
+            </div>
+          </header>
+          <img
+            class="mobile-shot"
+            src="./operations-demo-ko-v4-mobile-summary-card.jpg"
+            alt="Enterprise Policy RAG mobile summary screenshot"
+          />
+        </section>
+
+        <section class="panel mobile-frame">
+          <header class="panel-header">
+            <div>
+              <div class="panel-kicker">모바일 상세</div>
+              <h2 class="panel-title">쿼리 근거 상세</h2>
+            </div>
+          </header>
+          <img
+            class="mobile-shot"
+            src="./operations-demo-ko-v3-mobile-detail.jpg"
+            alt="Enterprise Policy RAG mobile detail screenshot"
+          />
+        </section>
+      </aside>
+    </main>
+  </body>
+</html>

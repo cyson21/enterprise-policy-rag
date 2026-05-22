@@ -1,0 +1,15 @@
+{
+  "name": "enterprise-policy-rag",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.1.3",
+  "scripts": {
+    "check:package-manager": "node scripts/check-package-manager.mjs",
+    "web:dev": "node scripts/run-web-task.mjs dev",
+    "web:build": "node scripts/run-web-task.mjs build",
+    "web:build:static": "node scripts/run-web-task.mjs build:static",
+    "web:preview:static": "node scripts/run-web-task.mjs preview:static",
+    "web:smoke": "node scripts/run-web-task.mjs smoke",
+    "web:smoke:static": "node scripts/smoke-static-demo.mjs"
+  }
+}
