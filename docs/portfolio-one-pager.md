@@ -38,6 +38,12 @@ Public demo:
 https://enterprise-policy-rag.vercel.app
 ```
 
+Repository:
+
+```text
+https://github.com/cyson21/enterprise-policy-rag
+```
+
 1. `김민아 / 보안` 사용자로 검색 콘솔에서 보안 사고 질문을 실행합니다.
 2. `보안 사고 대응 매뉴얼`의 인용 답변과 근거 청크를 확인합니다.
 3. `박준 / 재무` 사용자로 전환해 제한된 보안 문서가 제외되는지 확인합니다.
@@ -65,4 +71,4 @@ https://enterprise-policy-rag.vercel.app
 
 ## Next Valuable Slice
 
-Connect Git/Vercel integration for automatic deployments, then design production auth/SSO and admin workflows.
+Approve Vercel GitHub App access for automatic deployments, then design production auth/SSO and admin workflows.
