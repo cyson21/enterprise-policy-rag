@@ -32,6 +32,7 @@
 - `git diff --check`
   - Result: passed.
 
-## Pending After Commit
+## Post-Push Deployment Check
 
-- Push and Vercel deployment check.
+- Vercel Git deployment check is performed after push because each committed verification edit creates a new deployment.
+- Record the latest deployment URL, deployment id, and production alias status in the final handoff summary for this run.
