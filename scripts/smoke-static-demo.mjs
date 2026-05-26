@@ -43,7 +43,7 @@ try {
   const dom = await dumpDom(`http://127.0.0.1:${port}/?route=operations`);
   const failures = [];
 
-  for (const text of ["Enterprise Policy RAG", "공개 데모", "운영 지표", "쿼리 상세", "평가 리포트"]) {
+  for (const text of ["Enterprise Policy RAG", "공개 데모", "권한 세션", "운영 지표", "쿼리 상세", "평가 리포트"]) {
     if (!dom.includes(text)) {
       failures.push(`missing rendered text: ${text}`);
     }

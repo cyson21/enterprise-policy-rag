@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { getAuthSession, type AuthSession } from "../api/client";
 import { AppShell } from "../components/layout/AppShell";
 import { isStaticDemoMode } from "../config/demoMode";
 import { personas, workspace } from "../fixtures/personas";
@@ -10,6 +11,19 @@ import "../styles/tokens.css";
 export function App() {
   const [activeRoute, setActiveRoute] = useState<RouteId>(getInitialRoute);
   const [activePersonaId, setActivePersonaId] = useState(getInitialPersonaId);
+  const [authSession, setAuthSession] = useState<AuthSession | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAuthSession().then((session) => {
+      if (!cancelled) {
+        setAuthSession(session);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <AppShell
@@ -20,6 +34,7 @@ export function App() {
       workspaceName={workspace.name}
       environment={isStaticDemoMode ? "public-demo" : workspace.environment}
       provider={workspace.provider}
+      authMode={authSession?.auth_mode ?? "demo"}
       onRouteChange={setActiveRoute}
       onPersonaChange={setActivePersonaId}
     />

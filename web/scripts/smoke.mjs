@@ -29,6 +29,8 @@ const requiredLabels = [
   "공개 데모",
   "isStaticDemoMode",
   "김민아",
+  "getAuthSession",
+  "권한 세션",
   "loadRetrieval",
   "loadDocuments",
   "loadDocumentDetail",

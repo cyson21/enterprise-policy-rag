@@ -54,6 +54,16 @@ export function formatProvider(value: string) {
   return value;
 }
 
+export function formatAuthMode(value: string) {
+  if (value === "demo") {
+    return "데모";
+  }
+  if (value === "trusted_headers") {
+    return "SSO 헤더";
+  }
+  return value;
+}
+
 export function formatUserName(userId: string, fallback?: string) {
   return userLabels[userId] ?? fallback ?? userId;
 }

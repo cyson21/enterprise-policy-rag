@@ -67,8 +67,8 @@ https://github.com/cyson21/enterprise-policy-rag
 - On-premises deployment is outside the first scope.
 - PostgreSQL document and query log repositories are verified with low-resource Colima; the default app path remains in-memory unless `DATABASE_URL` is set.
 - `DATABASE_URL` switches the runtime to PostgreSQL-backed document, query log, and eval repositories.
-- Production auth/SSO and admin controls are not included.
+- Real IdP/OIDC and admin controls are not included. The auth/SSO boundary is implemented with demo and trusted-header providers.
 
 ## Next Valuable Slice
 
-Design production auth/SSO and admin workflows. A controlled live OpenAI smoke can be added later without changing the fake-provider-first local path.
+Build admin workflows next: document update/delete, indexing state, and audit log. A real IdP/OIDC adapter or controlled live OpenAI smoke can be added later without changing the fake-provider-first local path.

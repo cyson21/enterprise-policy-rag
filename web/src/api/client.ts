@@ -21,6 +21,20 @@ export async function getPersonas() {
   };
 }
 
+export type AuthSession = {
+  workspace_id: string;
+  user_id: string;
+  display_name: string;
+  department_ids: string[];
+  role: "employee" | "admin";
+  auth_mode: "demo" | "trusted_headers";
+  source: string;
+};
+
+export async function getAuthSession() {
+  return fetchJson<AuthSession>("/api/auth/session", fallbackAuthSession);
+}
+
 export type RetrievalResult = {
   rank: number;
   chunk_id: string;
@@ -389,6 +403,16 @@ const fallbackDocuments: DocumentSummary[] = [
     chunk_count: 1,
   },
 ];
+
+const fallbackAuthSession: AuthSession = {
+  workspace_id: workspace.id,
+  user_id: personas[0].id,
+  display_name: personas[0].displayName,
+  department_ids: personas[0].departmentIds,
+  role: personas[0].role,
+  auth_mode: "demo",
+  source: "demo_persona",
+};
 
 function fallbackDocumentDetail(documentId: string): DocumentDetailResponse {
   const document = fallbackDocuments.find((item) => item.id === documentId) ?? fallbackDocuments[0];
