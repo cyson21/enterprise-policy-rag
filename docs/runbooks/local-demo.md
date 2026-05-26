@@ -8,6 +8,8 @@ Run the current Enterprise Policy RAG demo without OpenAI API keys. Docker is op
 
 `LLM_PROVIDER` defaults to `fake`. `LLM_PROVIDER=openai` uses the OpenAI Responses API transport only when `OPENAI_API_KEY` is provided; live OpenAI calls are opt-in and not part of the default demo path.
 
+`AUTH_CONTEXT_PROVIDER` defaults to `demo`. `AUTH_CONTEXT_PROVIDER=oidc_jwt` validates a Bearer JWT only when issuer, audience, and signing configuration are explicitly provided.
+
 ## Prerequisites
 
 - Python 3.11+
@@ -83,7 +85,7 @@ node scripts/run-web-task.mjs build
 Expected current result:
 
 ```text
-58 passed, 2 skipped
+73 passed, 2 skipped
 ```
 
 For the backend-free public demo build, see `docs/runbooks/static-demo-deploy.md`.
@@ -107,6 +109,20 @@ colima stop
 ```
 
 The normal test suite skips this integration test unless `RUN_POSTGRES_TESTS=1` is set.
+
+## Optional OIDC JWT Check
+
+The default demo does not need an IdP. The OIDC path can be tested locally with a deterministic HS256 secret.
+
+```bash
+AUTH_CONTEXT_PROVIDER=oidc_jwt \
+OIDC_ISSUER=https://idp.example.test/ \
+OIDC_AUDIENCE=enterprise-policy-rag \
+OIDC_HS256_SECRET=local-oidc-secret-with-32-bytes-min \
+python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Call `GET /auth/session` with `Authorization: Bearer <jwt>`. In production-like checks, replace the local secret with `OIDC_JWKS_URL` from the IdP.
 
 ## Optional OpenAI Provider Check
 

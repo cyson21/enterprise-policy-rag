@@ -44,6 +44,7 @@
 20. `.ai-runs/2026-05-23-0412-static-demo-deploy-readiness/`
 21. `.ai-runs/2026-05-26-1005-github-remote-and-vercel-git-integration/`
 22. `.ai-runs/2026-05-26-1147-admin-ui-controls/`
+23. `.ai-runs/2026-05-26-1551-oidc-jwt-auth/`
 
 ## 첫 구현 단위 추천
 
@@ -101,12 +102,12 @@ GitHub repo: https://github.com/cyson21/enterprise-policy-rag
 Production auth/SSO boundary with demo and trusted header providers
 Admin document workflow API with indexing status and audit logs
 Knowledge Library admin UI controls with update/delete/audit log flow
+OIDC JWT auth adapter with issuer/audience/signature validation
 ```
 
 다음 구현 에이전트는 전체 제품 설계에 맞춰 아래 범위를 우선한다.
 
 ```text
-Real IdP/OIDC adapter
 Controlled live OpenAI smoke
 ```
 

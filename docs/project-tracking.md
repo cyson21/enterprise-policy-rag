@@ -10,7 +10,7 @@
 | 도메인 | 엔터프라이즈 사내 정책/업무 문서 RAG |
 | 목적 | AI Native Back-end Engineer 포지션 대응용 사이드 프로젝트 |
 | 핵심 아키텍처 | React UI + FastAPI + PostgreSQL/pgvector + provider abstraction + eval/ops |
-| 현재 Phase | Phase 5C admin UI controls implemented |
+| 현재 Phase | Phase 5D OIDC JWT auth adapter implemented |
 | 실제 LLM API | 후순위. fake provider first |
 | 온프레미스 | 1차 범위 제외 |
 
@@ -62,6 +62,7 @@
 - session-bound retrieval/answer endpoint는 request body의 권한 필드를 신뢰하지 않고 auth context에서 `workspace_id`, `user_id`, `department_ids`를 구성한다.
 - Admin workflow는 admin role session에 한해 document update/delete, synchronous re-indexing status, audit log를 제공한다.
 - Admin UI controls는 별도 dashboard route가 아니라 Knowledge Library의 문서 상세 패널 안에 배치한다.
+- OIDC JWT provider는 `AUTH_CONTEXT_PROVIDER=oidc_jwt`에서 Bearer token의 issuer, audience, signature, expiry를 검증하고 session claim을 매핑한다.
 
 ## Phase 0 완료 기준
 
@@ -398,6 +399,17 @@
 | Read-only state | non-admin persona는 같은 화면에서 관리 작업 비활성 안내만 표시 |
 | Static demo fallback | `VITE_DEMO_MODE=static`에서 admin 작업과 감사 로그가 deterministic fake data로 동작 |
 
+## Phase 5D 진행 스냅샷
+
+| 항목 | 결과 |
+|---|---|
+| OIDC provider | `OIDCJWTAuthContextProvider`와 `AUTH_CONTEXT_PROVIDER=oidc_jwt` 추가 |
+| Token validation | Bearer JWT issuer, audience, signature, expiry 검증 |
+| Claim mapping | `workspace_id`, `sub`, `name`, `department_ids`, `role`을 `AuthSession`으로 매핑 |
+| Local verification | `OIDC_HS256_SECRET`으로 외부 IdP 없이 deterministic auth tests 수행 |
+| Real IdP path | `OIDC_JWKS_URL`, `OIDC_JWT_ALGORITHMS`, claim-name env override 제공 |
+| Permission boundary | `/auth/retrieve`, `/auth/answer`, admin workflow가 OIDC session context를 사용 |
+
 ## Phase 2 완료 산출물
 
 - LLM provider interface
@@ -420,7 +432,6 @@
 
 ## 남은 확장 후보
 
-- Real IdP/OIDC adapter
 - Controlled live OpenAI smoke
 
 ## 참고 벤치마크

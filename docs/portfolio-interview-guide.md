@@ -24,6 +24,7 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 - 기본 로컬 경로는 in-memory repository와 fake provider를 사용해 API key와 Docker 없이 통과한다.
 - `DATABASE_URL`이 있으면 PostgreSQL + pgvector repository로 전환한다.
 - 모든 외부 AI 호출은 `EmbeddingProvider`, `LLMProvider` 뒤에 있고, `LLM_PROVIDER=openai`는 명시 opt-in일 때만 OpenAI Responses API transport를 사용한다.
+- auth는 `AuthContextProvider` 뒤에 있고, 기본 demo/trusted header 외에 `AUTH_CONTEXT_PROVIDER=oidc_jwt`로 Bearer JWT 검증 경로를 선택할 수 있다.
 
 ## What To Emphasize
 
@@ -36,7 +37,7 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 
 ## Tradeoffs
 
-- 실제 IdP/OIDC 연결 대신 demo auth context와 persona selector를 사용한다. 포트폴리오에서는 권한 시나리오를 빠르게 보여주고, production 전환 경계는 `AuthContextProvider`와 session-bound endpoint로 분리했다.
+- 공개 데모는 demo auth context와 persona selector를 사용한다. production 전환 경계는 `AuthContextProvider`와 session-bound endpoint로 분리했고, OIDC JWT provider는 issuer/audience/signature/expiry 검증과 claim mapping을 제공한다.
 - 대규모 문서 파서나 PDF ingestion은 제외했다. 첫 범위는 Markdown/TXT chunking, permission retrieval, citation, operations에 집중한다.
 - OpenAI live transport는 구현되어 있지만 기본 테스트에서는 호출하지 않는다. 비용과 secret 의존성을 CI에 넣지 않기 위해 mock HTTP opener로 검증한다.
 - 온프레미스 배포와 Kubernetes 운영 자동화는 1차 범위에서 제외했다.
@@ -52,5 +53,4 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 
 ## Next Steps
 
-- real IdP/OIDC adapter behind `AuthContextProvider`
 - optional live OpenAI smoke with a controlled API key

@@ -52,6 +52,22 @@ Normal local tests run without `DATABASE_URL` so they stay API-key-free and Dock
 | no `AUTH_CONTEXT_PROVIDER` | `demo` | default local and CI path, uses demo persona context |
 | `AUTH_CONTEXT_PROVIDER=demo` | `demo` | API-key-free and IdP-free |
 | `AUTH_CONTEXT_PROVIDER=trusted_headers` | `trusted_headers` | future gateway/SSO handoff mode; expects trusted identity headers from a protected upstream |
+| `AUTH_CONTEXT_PROVIDER=oidc_jwt` | `oidc_jwt` | validates `Authorization: Bearer <jwt>` with issuer, audience, signature, expiry, and session claim mapping |
+
+OIDC JWT env:
+
+| Environment | Required | Notes |
+|---|---|---|
+| `OIDC_ISSUER` | yes | expected JWT `iss` |
+| `OIDC_AUDIENCE` | yes | expected JWT `aud` |
+| `OIDC_HS256_SECRET` | one of secret/JWKS | local/CI deterministic verification path |
+| `OIDC_JWKS_URL` | one of secret/JWKS | real IdP public key lookup path |
+| `OIDC_JWT_ALGORITHMS` | no | comma-separated algorithms; defaults to `HS256` for secret, `RS256` for JWKS |
+| `OIDC_WORKSPACE_CLAIM` | no | defaults to `workspace_id` |
+| `OIDC_USER_CLAIM` | no | defaults to `sub` |
+| `OIDC_DISPLAY_NAME_CLAIM` | no | defaults to `name` |
+| `OIDC_DEPARTMENT_IDS_CLAIM` | no | defaults to `department_ids` |
+| `OIDC_ROLE_CLAIM` | no | defaults to `role` |
 
 ## Core Request Models
 
@@ -88,7 +104,7 @@ Normal local tests run without `DATABASE_URL` so they stay API-key-free and Dock
 | `display_name` | string | display hint |
 | `department_ids` | string[] | permission filter input |
 | `role` | string | `employee` or `admin` |
-| `auth_mode` | string | `demo` or `trusted_headers` |
+| `auth_mode` | string | `demo`, `trusted_headers`, or `oidc_jwt` |
 | `source` | string | source of the session context |
 
 ### `SessionSearchQuery`

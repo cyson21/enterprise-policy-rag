@@ -10,8 +10,9 @@ Enterprise Policy RAG의 검색 권한은 `workspace_id`, `user_id`, `department
 
 - 기본 실행은 계속 `demo` auth context를 사용한다.
 - CI와 local verification은 API key, IdP, OAuth client secret 없이 통과해야 한다.
-- SSO/OIDC/JWT 검증은 직접 구현하지 않고 provider boundary 뒤로 둔다.
+- SSO/OIDC/JWT 검증은 provider boundary 뒤에 둔다.
 - production gateway가 검증한 identity claim을 backend auth context로 매핑할 수 있는 구조를 둔다.
+- opt-in OIDC JWT provider는 Bearer token의 issuer, audience, signature, expiry를 검증하고 session claim을 매핑한다.
 
 ## Auth Context Model
 
@@ -22,7 +23,7 @@ Enterprise Policy RAG의 검색 권한은 `workspace_id`, `user_id`, `department
 | `display_name` | UI display hint |
 | `department_ids` | retrieval permission filter input |
 | `role` | `employee` 또는 `admin` |
-| `auth_mode` | `demo` 또는 `trusted_headers` |
+| `auth_mode` | `demo`, `trusted_headers`, `oidc_jwt` |
 | `source` | context가 어디서 왔는지 표시 |
 
 ## Provider Boundary
@@ -60,19 +61,41 @@ x-enterprise-department-ids
 x-enterprise-role
 ```
 
+### `oidc_jwt`
+
+- `AUTH_CONTEXT_PROVIDER=oidc_jwt`일 때 활성화한다.
+- `Authorization: Bearer <jwt>`에서 token을 읽는다.
+- 기본 로컬/CI 검증은 `OIDC_HS256_SECRET`을 사용해 외부 IdP 없이 수행한다.
+- 실제 IdP는 `OIDC_JWKS_URL`과 issuer/audience env를 통해 연결한다.
+- 기본 claim mapping:
+
+```text
+workspace_id       -> workspace_id
+sub                -> user_id
+name               -> display_name
+department_ids     -> department_ids
+role               -> role
+```
+
+필수 env:
+
+```text
+AUTH_CONTEXT_PROVIDER=oidc_jwt
+OIDC_ISSUER
+OIDC_AUDIENCE
+OIDC_HS256_SECRET 또는 OIDC_JWKS_URL
+```
+
 ## Security Notes
 
 - request body의 `user_id`, `department_ids`를 production 권한 근거로 쓰지 않는다.
 - session-bound endpoint는 body에 권한 필드가 들어와도 무시하고 auth context를 우선한다.
-- 실제 production에서는 gateway와 backend 사이의 network boundary, header spoofing 방지, OIDC token validation 또는 signed internal claims가 추가되어야 한다.
-- admin workflow는 별도 phase에서 role check와 audit log를 붙인다.
+- 실제 production에서는 gateway와 backend 사이의 network boundary와 header spoofing 방지 설정이 추가되어야 한다.
+- admin workflow는 role check와 audit log를 통해 session context를 사용한다.
 
 ## Excluded
 
-- 실제 IdP 연결
 - OAuth authorization code flow
-- JWT public key discovery/cache
 - session cookie 발급
 - user provisioning
 - SCIM/Okta/Google Workspace 동기화
-

@@ -161,7 +161,7 @@
   - 결과: admin-role document update/delete, synchronous `indexing_status`, append-only audit log API를 추가했다.
 - [x] Admin UI controls
   - 결과: Knowledge Library에 admin persona 전용 document update/delete controls와 audit log view를 추가했고, non-admin persona는 읽기 전용 안내를 표시한다.
-- [ ] Real IdP/OIDC adapter
-  - 목표: 현재 trusted header boundary 뒤에 실제 OIDC/JWT 검증 provider를 붙인다.
+- [x] Real IdP/OIDC adapter
+  - 결과: `AUTH_CONTEXT_PROVIDER=oidc_jwt` provider가 Bearer JWT의 issuer/audience/signature/expiry를 검증하고 session claim을 매핑한다.
 - [ ] Controlled live OpenAI smoke
   - 목표: 기본 fake-provider 경로를 유지하면서 API key가 있을 때만 제한된 live OpenAI smoke를 실행한다.
