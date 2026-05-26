@@ -40,12 +40,19 @@ const address = server.address();
 const port = typeof address === "object" && address ? address.port : 0;
 
 try {
-  const dom = await dumpDom(`http://127.0.0.1:${port}/?route=operations`);
+  const operationsDom = await dumpDom(`http://127.0.0.1:${port}/?route=operations`);
+  const adminDom = await dumpDom(`http://127.0.0.1:${port}/?route=knowledge&persona=admin-platform`);
   const failures = [];
 
   for (const text of ["Enterprise Policy RAG", "공개 데모", "권한 세션", "운영 지표", "쿼리 상세", "평가 리포트"]) {
-    if (!dom.includes(text)) {
+    if (!operationsDom.includes(text)) {
       failures.push(`missing rendered text: ${text}`);
+    }
+  }
+
+  for (const text of ["지식 라이브러리", "관리 작업", "문서 업데이트", "문서 삭제", "감사 로그"]) {
+    if (!adminDom.includes(text)) {
+      failures.push(`missing admin rendered text: ${text}`);
     }
   }
 
