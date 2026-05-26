@@ -14,6 +14,12 @@ The static demo uses the same React UI, but `VITE_DEMO_MODE=static` makes the fr
 https://enterprise-policy-rag.vercel.app
 ```
 
+GitHub repository:
+
+```text
+https://github.com/cyson21/enterprise-policy-rag
+```
+
 Deployment:
 
 ```text
@@ -101,3 +107,27 @@ Inspector: https://vercel.com/cyson21s-projects/enterprise-policy-rag/8rEfeFSZUH
 ```
 
 The local `.vercel` directory is intentionally ignored by Git.
+
+## Automatic Deployment Status
+
+The GitHub repository exists and `main` has been pushed. Direct Vercel Git connection is not complete yet.
+
+Attempted:
+
+```bash
+pnpm dlx vercel git connect https://github.com/cyson21/enterprise-policy-rag.git --yes
+```
+
+Result:
+
+```text
+Failed to connect cyson21/enterprise-policy-rag to project.
+```
+
+Deploy-hook fallback was also attempted, but Vercel only allows deploy hooks after the project is connected to a Git repository.
+
+Next action:
+
+```text
+Open Vercel Project Settings -> Git and grant the Vercel GitHub App access to cyson21/enterprise-policy-rag.
+```

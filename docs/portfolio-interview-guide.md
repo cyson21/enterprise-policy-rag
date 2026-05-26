@@ -8,6 +8,8 @@ Enterprise Policy RAG는 사내 정책/업무 매뉴얼/보안 지침을 권한 
 
 Public URL: `https://enterprise-policy-rag.vercel.app`
 
+Repository: `https://github.com/cyson21/enterprise-policy-rag`
+
 1. 검색 콘솔에서 `김민아 / 보안` persona로 보안 사고 질문을 실행한다.
 2. 답변, citation, chunk score, 접근 사유가 함께 표시되는지 보여준다.
 3. `박준 / 재무` persona로 바꿔 같은 질문의 검색 결과가 권한에 따라 달라지는지 보여준다.
@@ -50,7 +52,7 @@ Public URL: `https://enterprise-policy-rag.vercel.app`
 
 ## Next Steps
 
-- Git/Vercel integration 연결 후 commit push 기반 자동 배포
+- Vercel GitHub App repo access 승인 후 commit push 기반 자동 배포
 - production auth/SSO 설계
 - admin workflow: document update/delete, indexing state, audit log
 - optional live OpenAI smoke with a controlled API key

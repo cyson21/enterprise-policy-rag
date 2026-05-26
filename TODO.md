@@ -148,11 +148,15 @@
   - 결과: `VITE_DEMO_MODE=static`, `web:build:static`, `web:smoke:static`, `vercel.json`, `docs/runbooks/static-demo-deploy.md`
 - [x] 공개 배포 URL 발급
   - 결과: `https://enterprise-policy-rag.vercel.app`
+- [x] GitHub remote 생성과 push
+  - 결과: `https://github.com/cyson21/enterprise-policy-rag`
+- [!] Vercel Git integration 연결
+  - 차단: Vercel CLI `git connect`가 GitHub repo access 오류로 실패했다. Vercel GitHub App이 새 repo에 접근하도록 브라우저에서 승인해야 한다.
 
 ## Phase 5. 남은 확장 후보
 
-- [ ] Git remote / Vercel integration 연결
-  - 목표: 수동 CLI 배포 대신 commit push 기반 자동 배포를 구성한다.
+- [ ] Vercel GitHub App repo access 승인
+  - 목표: Vercel Project Settings -> Git에서 `cyson21/enterprise-policy-rag` 접근을 승인하고 자동 배포를 연결한다.
 - [ ] Production auth/SSO 설계
   - 목표: persona selector를 실제 auth context와 연결할 때 필요한 boundary를 설계한다.
 - [ ] Admin workflow 확장

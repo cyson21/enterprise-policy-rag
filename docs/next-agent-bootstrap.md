@@ -42,6 +42,7 @@
 18. `.ai-runs/2026-05-22-0305-demo-polish-screenshots/`
 19. `.ai-runs/2026-05-22-1812-phase4b-openai-and-portfolio-closeout/`
 20. `.ai-runs/2026-05-23-0412-static-demo-deploy-readiness/`
+21. `.ai-runs/2026-05-26-1005-github-remote-and-vercel-git-integration/`
 
 ## 첫 구현 단위 추천
 
@@ -95,12 +96,13 @@ Portfolio interview guide
 Static read-only demo build with `VITE_DEMO_MODE=static`
 Vercel static deploy config
 Public Vercel demo: https://enterprise-policy-rag.vercel.app
+GitHub repo: https://github.com/cyson21/enterprise-policy-rag
 ```
 
 다음 구현 에이전트는 전체 제품 설계에 맞춰 아래 범위를 우선한다.
 
 ```text
-Git remote / Vercel integration for automatic deployments
+Vercel GitHub App repo access approval for automatic deployments
 Production auth/SSO design
 Admin workflow expansion
 ```
@@ -143,7 +145,7 @@ node scripts/smoke-static-demo.mjs
 node scripts/run-web-task.mjs preview:static
 ```
 
-The public static demo is deployed at `https://enterprise-policy-rag.vercel.app`. The workspace still has no configured Git remote, so follow-up automation should connect Git/Vercel integration.
+The public static demo is deployed at `https://enterprise-policy-rag.vercel.app`. GitHub remote is `https://github.com/cyson21/enterprise-policy-rag`. Vercel Git integration is not connected yet because the Vercel GitHub App needs browser approval for this newly created repo.
 
 외부 LLM 호출의 기본 실행, production auth/SSO, production admin dashboard는 다음 단위에 넣지 않는다.
 
@@ -171,6 +173,7 @@ verification.md
 - Portfolio interview/demo guide is `docs/portfolio-interview-guide.md`.
 - Static demo deploy runbook is `docs/runbooks/static-demo-deploy.md`.
 - Public demo URL: `https://enterprise-policy-rag.vercel.app`.
+- GitHub repo URL: `https://github.com/cyson21/enterprise-policy-rag`.
 - 공개 README에는 특정 채용공고나 개인 지원 전략을 직접 넣지 않는다.
 - 포트폴리오 문서는 사람이 직접 관리하는 톤으로 작성한다.
 - 빌드/생성 산출물은 원본 소스에서 다시 생성한다.

@@ -10,7 +10,7 @@
 | 도메인 | 엔터프라이즈 사내 정책/업무 문서 RAG |
 | 목적 | AI Native Back-end Engineer 포지션 대응용 사이드 프로젝트 |
 | 핵심 아키텍처 | React UI + FastAPI + PostgreSQL/pgvector + provider abstraction + eval/ops |
-| 현재 Phase | Phase 4D Public static demo deployed |
+| 현재 Phase | Phase 4E GitHub remote published; Vercel Git integration needs app access approval |
 | 실제 LLM API | 후순위. fake provider first |
 | 온프레미스 | 1차 범위 제외 |
 
@@ -55,6 +55,8 @@
 - OpenAI adapter는 `LLM_PROVIDER=openai`로 명시 선택하고 `OPENAI_API_KEY`가 있을 때만 live Responses API transport를 사용한다. 기본 테스트와 로컬 실행은 fake provider를 유지한다.
 - Portfolio screenshot은 Operations 화면을 기준으로 desktop/mobile 상태를 캡처한다.
 - Public portfolio demo는 static read-only fake-provider build로 배포한다. 현재 production URL은 `https://enterprise-policy-rag.vercel.app`이다.
+- GitHub public repository는 `https://github.com/cyson21/enterprise-policy-rag`이다.
+- Vercel Git integration은 GitHub App repo access 승인 후 연결한다. CLI/API만으로는 새 repo 접근 권한을 부여할 수 없었다.
 
 ## Phase 0 완료 기준
 
@@ -336,6 +338,18 @@
 | Browser verification | Headless Chrome으로 `/?route=operations` 렌더링, `공개 데모`, `운영 지표`, `쿼리 상세`, `평가 리포트` 확인 |
 | 남은 범위 | Git remote/Vercel integration 기반 자동 배포, production auth/SSO |
 
+## Phase 4E 진행 스냅샷
+
+| 항목 | 결과 |
+|---|---|
+| GitHub repo | `https://github.com/cyson21/enterprise-policy-rag` public repository 생성 |
+| Remote | local `origin`을 `https://github.com/cyson21/enterprise-policy-rag.git`로 설정 |
+| Push | `main` branch push 완료 |
+| Secret scan | dummy `sk-test`와 `<redacted>` 문서 예시 외 실제 token/key 패턴 없음 |
+| Vercel Git connect | `vercel git connect https://github.com/cyson21/enterprise-policy-rag.git --yes` 실패 |
+| Deploy hook fallback | Vercel deploy hook도 Git 연결 프로젝트에서만 생성 가능해 실패 |
+| 차단 | Vercel GitHub App이 새 repo에 접근하도록 브라우저 승인 필요 |
+
 ## Phase 2 완료 산출물
 
 - LLM provider interface
@@ -358,7 +372,7 @@
 
 ## 남은 확장 후보
 
-- Git remote/Vercel integration
+- Vercel GitHub App repo access approval
 - Production auth/SSO
 - Admin workflow 확장
 
