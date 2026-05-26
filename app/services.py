@@ -6,6 +6,10 @@ from app.chunking import chunk_text
 from app.answer import AnswerService
 from app.eval_runs import EvalRunRepository, InMemoryEvalRunRepository
 from app.models import (
+    AdminAuditLogCreate,
+    AdminAuditLogsResponse,
+    AdminDocumentDeleteResponse,
+    AdminDocumentUpdateResponse,
     AnswerQuery,
     AnswerResponse,
     DocumentChunkPreview,
@@ -14,6 +18,7 @@ from app.models import (
     DocumentIngestResponse,
     DocumentListResponse,
     DocumentSummary,
+    DocumentUpdate,
     MetricsSummaryResponse,
     QueryLogCreate,
     QueryDetailResponse,
@@ -84,6 +89,85 @@ class PolicyRagServices:
             for chunk in self.repository.list_document_chunks(workspace_id=workspace_id, document_id=document_id)
         ]
         return DocumentDetailResponse(document=self._build_document_summary(document), chunks=chunks)
+
+    def update_document(
+        self,
+        workspace_id: str,
+        document_id: str,
+        payload: DocumentUpdate,
+        actor_user_id: str,
+    ) -> AdminDocumentUpdateResponse | None:
+        existing = self.repository.get_document(workspace_id=workspace_id, document_id=document_id)
+        if existing is None:
+            return None
+
+        existing_chunks = self.repository.list_document_chunks(workspace_id=workspace_id, document_id=document_id)
+        content = payload.content
+        if content is None:
+            content = "\n\n".join(chunk.text for chunk in existing_chunks) or " "
+
+        replacement = DocumentCreate(
+            workspace_id=workspace_id,
+            title=payload.title if payload.title is not None else existing.title,
+            source_uri=payload.source_uri if payload.source_uri is not None else existing.source_uri,
+            content=content,
+            content_type=payload.content_type if payload.content_type is not None else existing.content_type,
+            owner_user_id=payload.owner_user_id if payload.owner_user_id is not None else existing.owner_user_id,
+            department_ids=payload.department_ids if payload.department_ids is not None else existing.department_ids,
+            visibility=payload.visibility if payload.visibility is not None else existing.visibility,
+        )
+        chunks = chunk_text(replacement.content)
+        embeddings = self.embedding_provider.embed_many([chunk.text for chunk in chunks])
+        stored = self.repository.update_document(
+            document_id=document_id,
+            document=replacement,
+            chunks=chunks,
+            embeddings=embeddings,
+        )
+        if stored is None:
+            return None
+
+        self.repository.add_admin_audit_log(
+            AdminAuditLogCreate(
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                action="document.updated",
+                document_id=document_id,
+                details={
+                    "title": stored.title,
+                    "visibility": stored.visibility.value,
+                    "department_ids": stored.department_ids,
+                    "indexing_status": stored.indexing_status.value,
+                },
+            )
+        )
+        return AdminDocumentUpdateResponse(
+            document=self._build_document_summary(stored),
+            chunk_count=len(chunks),
+        )
+
+    def delete_document(
+        self,
+        workspace_id: str,
+        document_id: str,
+        actor_user_id: str,
+    ) -> AdminDocumentDeleteResponse | None:
+        deleted = self.repository.delete_document(workspace_id=workspace_id, document_id=document_id)
+        if deleted is None:
+            return None
+        self.repository.add_admin_audit_log(
+            AdminAuditLogCreate(
+                workspace_id=workspace_id,
+                actor_user_id=actor_user_id,
+                action="document.deleted",
+                document_id=document_id,
+                details={"title": deleted.title, "visibility": deleted.visibility.value},
+            )
+        )
+        return AdminDocumentDeleteResponse(document_id=document_id, workspace_id=workspace_id, deleted=True)
+
+    def list_admin_audit_logs(self, workspace_id: str) -> AdminAuditLogsResponse:
+        return AdminAuditLogsResponse(logs=self.repository.list_admin_audit_logs(workspace_id, limit=50))
 
     def retrieve(self, payload: RetrievalQuery) -> RetrievalResponse:
         started = perf_counter()
@@ -166,6 +250,7 @@ class PolicyRagServices:
             owner_user_id=document.owner_user_id,
             department_ids=document.department_ids,
             visibility=document.visibility,
+            indexing_status=document.indexing_status,
             chunk_count=len(chunks),
         )
 

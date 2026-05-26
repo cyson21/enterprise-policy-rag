@@ -37,6 +37,7 @@ const requiredLabels = [
   "접근 사유",
   "점수 기준",
   "문서 상세",
+  "인덱싱 상태",
   "임베딩 차원",
   "runLabRetrieval",
   "실험 쿼리",

@@ -1,7 +1,7 @@
 import pytest
 
 from app.chunking import TextChunk
-from app.models import DocumentCreate, Visibility
+from app.models import AdminAuditLogCreate, DocumentCreate, Visibility
 import app.repository as repository_module
 from app.repository import PostgresPolicyRepository
 
@@ -39,6 +39,8 @@ class RecordingCursor:
             self.rows = self.connection.rows_by_query.get("document", [])
         elif "FROM document_chunks" in normalized:
             self.rows = self.connection.rows_by_query.get("chunks", [])
+        elif "FROM admin_audit_logs" in normalized:
+            self.rows = self.connection.rows_by_query.get("admin_audit_logs", [])
 
     def fetchall(self):
         return self.rows
@@ -141,3 +143,114 @@ def test_postgres_repository_maps_document_summaries_with_chunk_counts():
     assert len(documents) == 1
     assert documents[0].title == "Remote Access Policy"
     assert documents[0].visibility == Visibility.PUBLIC
+    assert documents[0].indexing_status == "ready"
+
+
+def test_postgres_repository_update_document_replaces_document_and_chunks():
+    connection = RecordingConnection(
+        rows_by_query={
+            "document": [
+                {
+                    "id": "doc_1",
+                    "workspace_id": "acme",
+                    "title": "Old Title",
+                    "source_uri": "policy://old",
+                    "content_type": "text/markdown",
+                    "owner_user_id": "admin-platform",
+                    "department_ids": ["platform"],
+                    "visibility": "private",
+                    "indexing_status": "ready",
+                }
+            ]
+        }
+    )
+    repository = PostgresPolicyRepository(connection=connection)
+    payload = DocumentCreate(
+        workspace_id="acme",
+        title="New Title",
+        source_uri="policy://new",
+        content="Updated content",
+        content_type="text/markdown",
+        owner_user_id="admin-platform",
+        department_ids=["security"],
+        visibility=Visibility.DEPARTMENT,
+    )
+
+    stored = repository.update_document(
+        "doc_1",
+        payload,
+        chunks=[TextChunk(index=0, text="Updated content")],
+        embeddings=[[0.1, 0.2]],
+    )
+
+    assert stored is not None
+    assert stored.id == "doc_1"
+    assert stored.title == "New Title"
+    assert stored.indexing_status == "ready"
+    assert connection.committed is True
+    executed_sql = [statement for statement, _params in connection.statements]
+    assert any(statement.startswith("UPDATE documents SET title") for statement in executed_sql)
+    assert any(statement.startswith("DELETE FROM document_chunks") for statement in executed_sql)
+    assert any(statement.startswith("INSERT INTO document_chunks") for statement in executed_sql)
+
+
+def test_postgres_repository_delete_document_removes_document_after_lookup():
+    connection = RecordingConnection(
+        rows_by_query={
+            "document": [
+                {
+                    "id": "doc_1",
+                    "workspace_id": "acme",
+                    "title": "Delete Me",
+                    "source_uri": None,
+                    "content_type": "text/markdown",
+                    "owner_user_id": "admin-platform",
+                    "department_ids": ["platform"],
+                    "visibility": "private",
+                    "indexing_status": "ready",
+                }
+            ]
+        }
+    )
+    repository = PostgresPolicyRepository(connection=connection)
+
+    deleted = repository.delete_document("acme", "doc_1")
+
+    assert deleted is not None
+    assert deleted.title == "Delete Me"
+    assert connection.committed is True
+    assert any(statement.startswith("DELETE FROM documents") for statement, _params in connection.statements)
+
+
+def test_postgres_repository_admin_audit_log_round_trip_mapping():
+    connection = RecordingConnection(
+        rows_by_query={
+            "admin_audit_logs": [
+                {
+                    "id": "audit_1",
+                    "workspace_id": "acme",
+                    "actor_user_id": "admin-platform",
+                    "action": "document.updated",
+                    "document_id": "doc_1",
+                    "details": '{"title": "New Title"}',
+                    "created_at": "2026-05-26T00:00:00+00:00",
+                }
+            ]
+        }
+    )
+    repository = PostgresPolicyRepository(connection=connection)
+
+    stored = repository.add_admin_audit_log(
+        AdminAuditLogCreate(
+            workspace_id="acme",
+            actor_user_id="admin-platform",
+            action="document.updated",
+            document_id="doc_1",
+            details={"title": "New Title"},
+        )
+    )
+    logs = repository.list_admin_audit_logs("acme")
+
+    assert stored.id.startswith("audit_")
+    assert connection.committed is True
+    assert logs[0].details == {"title": "New Title"}

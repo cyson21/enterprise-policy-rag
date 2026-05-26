@@ -86,6 +86,7 @@ export type DocumentSummary = {
   owner_user_id: string;
   department_ids: string[];
   visibility: "public" | "department" | "private";
+  indexing_status: "queued" | "indexing" | "ready" | "failed";
   chunk_count: number;
 };
 
@@ -367,6 +368,7 @@ const fallbackDocuments: DocumentSummary[] = [
     owner_user_id: "admin-platform",
     department_ids: ["platform", "security"],
     visibility: "public",
+    indexing_status: "ready",
     chunk_count: 1,
   },
   {
@@ -378,6 +380,7 @@ const fallbackDocuments: DocumentSummary[] = [
     owner_user_id: "mina-security",
     department_ids: ["security"],
     visibility: "department",
+    indexing_status: "ready",
     chunk_count: 1,
   },
   {
@@ -389,6 +392,7 @@ const fallbackDocuments: DocumentSummary[] = [
     owner_user_id: "joon-finance",
     department_ids: ["finance"],
     visibility: "department",
+    indexing_status: "ready",
     chunk_count: 1,
   },
   {
@@ -400,6 +404,7 @@ const fallbackDocuments: DocumentSummary[] = [
     owner_user_id: "admin-platform",
     department_ids: ["platform"],
     visibility: "private",
+    indexing_status: "ready",
     chunk_count: 1,
   },
 ];
