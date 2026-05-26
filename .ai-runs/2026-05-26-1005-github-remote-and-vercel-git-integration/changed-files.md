@@ -33,7 +33,7 @@ origin https://github.com/cyson21/enterprise-policy-rag.git
 ## Final Verification Refresh
 
 - `.ai-runs/2026-05-26-1005-github-remote-and-vercel-git-integration/verification.md`
-  - Added final local tracking and remote SHA verification after the GitHub status docs commit.
+  - Added final local tracking and remote reachability verification after the GitHub status docs commit.
 
 ## Side-Projects Hub
 

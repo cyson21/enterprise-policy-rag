@@ -105,7 +105,7 @@ server: Vercel
 x-vercel-cache: HIT
 ```
 
-## Final Remote Check
+## Remote Tracking Check
 
 ```bash
 git status -sb
@@ -116,8 +116,10 @@ Result:
 
 ```text
 ## main...origin/main
-0c6bf6182990daa69002c220b214a81b6dcb4fbc	refs/heads/main
+refs/heads/main is reachable on origin.
 ```
+
+Note: the exact head SHA is not pinned in this file because committing this verification file creates the next Git head. Re-run `git ls-remote origin refs/heads/main` for the live remote SHA.
 
 ## Working Tree Check
 
