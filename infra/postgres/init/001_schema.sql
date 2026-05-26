@@ -15,8 +15,12 @@ CREATE TABLE IF NOT EXISTS documents (
     owner_user_id TEXT NOT NULL,
     department_ids TEXT[] NOT NULL DEFAULT '{}',
     visibility TEXT NOT NULL CHECK (visibility IN ('public', 'department', 'private')),
+    indexing_status TEXT NOT NULL DEFAULT 'ready',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE documents
+    ADD COLUMN IF NOT EXISTS indexing_status TEXT NOT NULL DEFAULT 'ready';
 
 CREATE TABLE IF NOT EXISTS document_chunks (
     id TEXT PRIMARY KEY,
@@ -155,3 +159,19 @@ CREATE TABLE IF NOT EXISTS eval_case_results (
 
 CREATE INDEX IF NOT EXISTS idx_eval_case_results_eval_run
     ON eval_case_results (eval_run_id, case_id);
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    actor_user_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    document_id TEXT,
+    details JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_workspace_created_at
+    ON admin_audit_logs (workspace_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_workspace_document
+    ON admin_audit_logs (workspace_id, document_id);

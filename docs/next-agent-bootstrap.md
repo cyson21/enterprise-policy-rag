@@ -98,12 +98,13 @@ Vercel static deploy config
 Public Vercel demo: https://enterprise-policy-rag.vercel.app
 GitHub repo: https://github.com/cyson21/enterprise-policy-rag
 Production auth/SSO boundary with demo and trusted header providers
+Admin document workflow API with indexing status and audit logs
 ```
 
 다음 구현 에이전트는 전체 제품 설계에 맞춰 아래 범위를 우선한다.
 
 ```text
-Admin workflow expansion
+Admin UI controls
 Real IdP/OIDC adapter
 ```
 

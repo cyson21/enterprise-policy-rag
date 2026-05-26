@@ -88,6 +88,22 @@ export function formatVisibility(value: string) {
   return value;
 }
 
+export function formatIndexingStatus(value: string) {
+  if (value === "queued") {
+    return "대기";
+  }
+  if (value === "indexing") {
+    return "인덱싱 중";
+  }
+  if (value === "ready") {
+    return "준비 완료";
+  }
+  if (value === "failed") {
+    return "실패";
+  }
+  return value;
+}
+
 export function formatAccessReason(value: string) {
   if (value === "owner") {
     return "소유자";

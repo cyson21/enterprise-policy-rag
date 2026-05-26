@@ -157,7 +157,9 @@
 
 - [x] Production auth/SSO boundary 설계와 최소 구현
   - 결과: `GET /auth/session`, `POST /auth/retrieve`, `POST /auth/answer`, demo/trusted header auth provider, UI auth status를 추가했다.
-- [ ] Admin workflow 확장
-  - 목표: 문서 생성/수정/삭제, indexing 상태 전이, audit log를 추가한다.
+- [x] Admin workflow 확장
+  - 결과: admin-role document update/delete, synchronous `indexing_status`, append-only audit log API를 추가했다.
+- [ ] Admin UI controls
+  - 목표: Knowledge Library에서 update/delete/status/audit 흐름을 조작할 수 있는 운영자 전용 화면을 추가한다.
 - [ ] Real IdP/OIDC adapter
   - 목표: 현재 trusted header boundary 뒤에 실제 OIDC/JWT 검증 provider를 붙인다.

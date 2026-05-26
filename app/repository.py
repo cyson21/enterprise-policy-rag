@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
+from datetime import datetime, timezone
 from typing import Any, Protocol
 from uuid import uuid4
 
 from app.chunking import TextChunk
-from app.models import DocumentCreate, StoredChunk, StoredDocument
+from app.models import (
+    AdminAuditLogCreate,
+    DocumentCreate,
+    IndexingStatus,
+    StoredAdminAuditLog,
+    StoredChunk,
+    StoredDocument,
+)
 
 try:
     import psycopg
@@ -36,6 +45,24 @@ class PolicyRepository(Protocol):
     def list_document_chunks(self, workspace_id: str, document_id: str) -> list[StoredChunk]:
         """Return chunks for one document if it belongs to the workspace."""
 
+    def update_document(
+        self,
+        document_id: str,
+        document: DocumentCreate,
+        chunks: Sequence[TextChunk],
+        embeddings: Sequence[list[float]],
+    ) -> StoredDocument | None:
+        """Replace document metadata and chunks if it belongs to the workspace."""
+
+    def delete_document(self, workspace_id: str, document_id: str) -> StoredDocument | None:
+        """Delete one document and its chunks if it belongs to the workspace."""
+
+    def add_admin_audit_log(self, log: AdminAuditLogCreate) -> StoredAdminAuditLog:
+        """Append an admin audit log entry."""
+
+    def list_admin_audit_logs(self, workspace_id: str, limit: int | None = None) -> list[StoredAdminAuditLog]:
+        """Return recent admin audit log entries."""
+
 
 class InMemoryPolicyRepository:
     """Small repository used by the first retrieval slice and API tests."""
@@ -43,8 +70,10 @@ class InMemoryPolicyRepository:
     def __init__(self) -> None:
         self._document_sequence = 0
         self._chunk_sequence = 0
+        self._audit_log_sequence = 0
         self._documents: dict[str, StoredDocument] = {}
         self._chunks: dict[str, StoredChunk] = {}
+        self._audit_logs: list[StoredAdminAuditLog] = []
 
     def add_document(
         self,
@@ -66,6 +95,7 @@ class InMemoryPolicyRepository:
             owner_user_id=document.owner_user_id,
             department_ids=document.department_ids,
             visibility=document.visibility,
+            indexing_status=IndexingStatus.READY,
         )
         self._documents[document_id] = stored
 
@@ -107,6 +137,85 @@ class InMemoryPolicyRepository:
             if chunk.workspace_id == workspace_id and chunk.document_id == document_id
         ]
 
+    def update_document(
+        self,
+        document_id: str,
+        document: DocumentCreate,
+        chunks: Sequence[TextChunk],
+        embeddings: Sequence[list[float]],
+    ) -> StoredDocument | None:
+        if len(chunks) != len(embeddings):
+            raise ValueError("chunks and embeddings length mismatch")
+        existing = self.get_document(workspace_id=document.workspace_id, document_id=document_id)
+        if existing is None:
+            return None
+
+        stored = StoredDocument(
+            id=document_id,
+            workspace_id=document.workspace_id,
+            title=document.title,
+            source_uri=document.source_uri,
+            content_type=document.content_type,
+            owner_user_id=document.owner_user_id,
+            department_ids=document.department_ids,
+            visibility=document.visibility,
+            indexing_status=IndexingStatus.READY,
+        )
+        self._documents[document_id] = stored
+        self._chunks = {
+            chunk_id: chunk
+            for chunk_id, chunk in self._chunks.items()
+            if not (chunk.workspace_id == document.workspace_id and chunk.document_id == document_id)
+        }
+
+        for chunk, embedding in zip(chunks, embeddings):
+            self._chunk_sequence += 1
+            chunk_id = f"chunk_{self._chunk_sequence}"
+            self._chunks[chunk_id] = StoredChunk(
+                id=chunk_id,
+                document_id=document_id,
+                workspace_id=stored.workspace_id,
+                title=stored.title,
+                source_uri=stored.source_uri,
+                owner_user_id=stored.owner_user_id,
+                department_ids=stored.department_ids,
+                visibility=stored.visibility,
+                chunk_index=chunk.index,
+                text=chunk.text,
+                embedding=embedding,
+            )
+        return stored
+
+    def delete_document(self, workspace_id: str, document_id: str) -> StoredDocument | None:
+        existing = self.get_document(workspace_id=workspace_id, document_id=document_id)
+        if existing is None:
+            return None
+        del self._documents[document_id]
+        self._chunks = {
+            chunk_id: chunk
+            for chunk_id, chunk in self._chunks.items()
+            if not (chunk.workspace_id == workspace_id and chunk.document_id == document_id)
+        }
+        return existing
+
+    def add_admin_audit_log(self, log: AdminAuditLogCreate) -> StoredAdminAuditLog:
+        self._audit_log_sequence += 1
+        stored = StoredAdminAuditLog(
+            id=f"audit_{self._audit_log_sequence}",
+            workspace_id=log.workspace_id,
+            actor_user_id=log.actor_user_id,
+            action=log.action,
+            document_id=log.document_id,
+            details=log.details,
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+        self._audit_logs.append(stored)
+        return stored
+
+    def list_admin_audit_logs(self, workspace_id: str, limit: int | None = None) -> list[StoredAdminAuditLog]:
+        logs = [log for log in reversed(self._audit_logs) if log.workspace_id == workspace_id]
+        return logs[:limit] if limit is not None else logs
+
 
 class PostgresPolicyRepository:
     """PostgreSQL + pgvector repository for the retrieval core."""
@@ -137,6 +246,7 @@ class PostgresPolicyRepository:
             owner_user_id=document.owner_user_id,
             department_ids=document.department_ids,
             visibility=document.visibility,
+            indexing_status=IndexingStatus.READY,
         )
 
         with self._cursor() as cursor:
@@ -152,9 +262,9 @@ class PostgresPolicyRepository:
                 """
                 INSERT INTO documents (
                     id, workspace_id, title, source_uri, content_type,
-                    owner_user_id, department_ids, visibility
+                    owner_user_id, department_ids, visibility, indexing_status
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     stored.id,
@@ -165,6 +275,7 @@ class PostgresPolicyRepository:
                     stored.owner_user_id,
                     stored.department_ids,
                     stored.visibility.value,
+                    stored.indexing_status.value,
                 ),
             )
 
@@ -201,6 +312,7 @@ class PostgresPolicyRepository:
                     d.owner_user_id,
                     d.department_ids,
                     d.visibility,
+                    d.indexing_status,
                     c.chunk_index,
                     c.text,
                     c.embedding
@@ -226,6 +338,7 @@ class PostgresPolicyRepository:
                     d.owner_user_id,
                     d.department_ids,
                     d.visibility,
+                    d.indexing_status,
                     COUNT(c.id) AS chunk_count
                 FROM documents d
                 LEFT JOIN document_chunks c ON c.document_id = d.id
@@ -249,7 +362,8 @@ class PostgresPolicyRepository:
                     content_type,
                     owner_user_id,
                     department_ids,
-                    visibility
+                    visibility,
+                    indexing_status
                 FROM documents
                 WHERE workspace_id = %s AND id = %s
                 """,
@@ -273,6 +387,7 @@ class PostgresPolicyRepository:
                     d.owner_user_id,
                     d.department_ids,
                     d.visibility,
+                    d.indexing_status,
                     c.chunk_index,
                     c.text,
                     c.embedding
@@ -284,6 +399,160 @@ class PostgresPolicyRepository:
                 (workspace_id, document_id),
             )
             return [_chunk_from_row(row) for row in cursor.fetchall()]
+
+    def update_document(
+        self,
+        document_id: str,
+        document: DocumentCreate,
+        chunks: Sequence[TextChunk],
+        embeddings: Sequence[list[float]],
+    ) -> StoredDocument | None:
+        if len(chunks) != len(embeddings):
+            raise ValueError("chunks and embeddings length mismatch")
+        if self.get_document(workspace_id=document.workspace_id, document_id=document_id) is None:
+            return None
+
+        stored = StoredDocument(
+            id=document_id,
+            workspace_id=document.workspace_id,
+            title=document.title,
+            source_uri=document.source_uri,
+            content_type=document.content_type,
+            owner_user_id=document.owner_user_id,
+            department_ids=document.department_ids,
+            visibility=document.visibility,
+            indexing_status=IndexingStatus.READY,
+        )
+        with self._cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE documents
+                SET title = %s,
+                    source_uri = %s,
+                    content_type = %s,
+                    owner_user_id = %s,
+                    department_ids = %s,
+                    visibility = %s,
+                    indexing_status = %s
+                WHERE workspace_id = %s AND id = %s
+                """,
+                (
+                    stored.title,
+                    stored.source_uri,
+                    stored.content_type,
+                    stored.owner_user_id,
+                    stored.department_ids,
+                    stored.visibility.value,
+                    IndexingStatus.INDEXING.value,
+                    stored.workspace_id,
+                    stored.id,
+                ),
+            )
+            cursor.execute(
+                """
+                DELETE FROM document_chunks
+                WHERE workspace_id = %s AND document_id = %s
+                """,
+                (stored.workspace_id, stored.id),
+            )
+            for chunk, embedding in zip(chunks, embeddings):
+                cursor.execute(
+                    """
+                    INSERT INTO document_chunks (
+                        id, document_id, workspace_id, chunk_index, text, embedding
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        f"chunk_{uuid4().hex}",
+                        stored.id,
+                        stored.workspace_id,
+                        chunk.index,
+                        chunk.text,
+                        _vector_literal(embedding),
+                    ),
+                )
+            cursor.execute(
+                """
+                UPDATE documents
+                SET indexing_status = %s
+                WHERE workspace_id = %s AND id = %s
+                """,
+                (IndexingStatus.READY.value, stored.workspace_id, stored.id),
+            )
+        self._connection.commit()
+        return stored
+
+    def delete_document(self, workspace_id: str, document_id: str) -> StoredDocument | None:
+        existing = self.get_document(workspace_id=workspace_id, document_id=document_id)
+        if existing is None:
+            return None
+        with self._cursor() as cursor:
+            cursor.execute(
+                """
+                DELETE FROM documents
+                WHERE workspace_id = %s AND id = %s
+                """,
+                (workspace_id, document_id),
+            )
+        self._connection.commit()
+        return existing
+
+    def add_admin_audit_log(self, log: AdminAuditLogCreate) -> StoredAdminAuditLog:
+        stored = StoredAdminAuditLog(
+            id=f"audit_{uuid4().hex}",
+            workspace_id=log.workspace_id,
+            actor_user_id=log.actor_user_id,
+            action=log.action,
+            document_id=log.document_id,
+            details=log.details,
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+        with self._cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO admin_audit_logs (
+                    id, workspace_id, actor_user_id, action, document_id, details, created_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s)
+                """,
+                (
+                    stored.id,
+                    stored.workspace_id,
+                    stored.actor_user_id,
+                    stored.action,
+                    stored.document_id,
+                    json.dumps(stored.details),
+                    stored.created_at,
+                ),
+            )
+        self._connection.commit()
+        return stored
+
+    def list_admin_audit_logs(self, workspace_id: str, limit: int | None = None) -> list[StoredAdminAuditLog]:
+        with self._cursor() as cursor:
+            if limit is None:
+                cursor.execute(
+                    """
+                    SELECT id, workspace_id, actor_user_id, action, document_id, details, created_at
+                    FROM admin_audit_logs
+                    WHERE workspace_id = %s
+                    ORDER BY created_at DESC, id DESC
+                    """,
+                    (workspace_id,),
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT id, workspace_id, actor_user_id, action, document_id, details, created_at
+                    FROM admin_audit_logs
+                    WHERE workspace_id = %s
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT %s
+                    """,
+                    (workspace_id, limit),
+                )
+            return [_audit_log_from_row(row) for row in cursor.fetchall()]
 
     def _cursor(self) -> Any:
         if dict_row is None:
@@ -301,6 +570,7 @@ def _document_from_row(row: dict[str, Any]) -> StoredDocument:
         owner_user_id=row["owner_user_id"],
         department_ids=list(row["department_ids"] or []),
         visibility=row["visibility"],
+        indexing_status=row.get("indexing_status", IndexingStatus.READY.value),
     )
 
 
@@ -317,6 +587,21 @@ def _chunk_from_row(row: dict[str, Any]) -> StoredChunk:
         chunk_index=row["chunk_index"],
         text=row["text"],
         embedding=_parse_vector(row["embedding"]),
+    )
+
+
+def _audit_log_from_row(row: dict[str, Any]) -> StoredAdminAuditLog:
+    details = row["details"]
+    if isinstance(details, str):
+        details = json.loads(details)
+    return StoredAdminAuditLog(
+        id=row["id"],
+        workspace_id=row["workspace_id"],
+        actor_user_id=row["actor_user_id"],
+        action=row["action"],
+        document_id=row["document_id"],
+        details=dict(details or {}),
+        created_at=str(row["created_at"]),
     )
 
 

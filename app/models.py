@@ -15,6 +15,13 @@ class Visibility(str, Enum):
     PRIVATE = "private"
 
 
+class IndexingStatus(str, Enum):
+    QUEUED = "queued"
+    INDEXING = "indexing"
+    READY = "ready"
+    FAILED = "failed"
+
+
 class DocumentCreate(BaseModel):
     workspace_id: str = Field(min_length=1)
     title: str = Field(min_length=1)
@@ -39,6 +46,33 @@ class DocumentCreate(BaseModel):
         return sorted({item.strip() for item in value if item.strip()})
 
 
+class DocumentUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1)
+    source_uri: Optional[str] = None
+    content: Optional[str] = Field(default=None, min_length=1)
+    content_type: Optional[str] = None
+    owner_user_id: Optional[str] = Field(default=None, min_length=1)
+    department_ids: Optional[list[str]] = None
+    visibility: Optional[Visibility] = None
+
+    @field_validator("content_type")
+    @classmethod
+    def validate_content_type(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        if value not in SUPPORTED_CONTENT_TYPES:
+            supported = ", ".join(sorted(SUPPORTED_CONTENT_TYPES))
+            raise ValueError(f"unsupported content_type: {value}; supported: {supported}")
+        return value
+
+    @field_validator("department_ids")
+    @classmethod
+    def normalize_departments(cls, value: Optional[list[str]]) -> Optional[list[str]]:
+        if value is None:
+            return value
+        return sorted({item.strip() for item in value if item.strip()})
+
+
 class StoredDocument(BaseModel):
     id: str
     workspace_id: str
@@ -48,6 +82,7 @@ class StoredDocument(BaseModel):
     owner_user_id: str
     department_ids: list[str]
     visibility: Visibility
+    indexing_status: IndexingStatus = IndexingStatus.READY
 
 
 class StoredChunk(BaseModel):
@@ -79,6 +114,7 @@ class DocumentSummary(BaseModel):
     owner_user_id: str
     department_ids: list[str]
     visibility: Visibility
+    indexing_status: IndexingStatus
     chunk_count: int
 
 
@@ -98,6 +134,34 @@ class DocumentListResponse(BaseModel):
 class DocumentDetailResponse(BaseModel):
     document: DocumentSummary
     chunks: list[DocumentChunkPreview]
+
+
+class AdminDocumentUpdateResponse(BaseModel):
+    document: DocumentSummary
+    chunk_count: int
+
+
+class AdminDocumentDeleteResponse(BaseModel):
+    document_id: str
+    workspace_id: str
+    deleted: bool
+
+
+class AdminAuditLogCreate(BaseModel):
+    workspace_id: str = Field(min_length=1)
+    actor_user_id: str = Field(min_length=1)
+    action: str = Field(min_length=1)
+    document_id: Optional[str] = None
+    details: dict[str, object] = Field(default_factory=dict)
+
+
+class StoredAdminAuditLog(AdminAuditLogCreate):
+    id: str
+    created_at: str
+
+
+class AdminAuditLogsResponse(BaseModel):
+    logs: list[StoredAdminAuditLog]
 
 
 class RetrievalQuery(BaseModel):

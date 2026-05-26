@@ -52,6 +52,6 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 
 ## Next Steps
 
-- admin workflow: document update/delete, indexing state, audit log
+- admin UI controls for document update/delete, indexing state, audit log
 - real IdP/OIDC adapter behind `AuthContextProvider`
 - optional live OpenAI smoke with a controlled API key

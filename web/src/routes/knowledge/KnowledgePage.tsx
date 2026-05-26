@@ -10,6 +10,7 @@ import type { PageProps } from "../../components/layout/AppShell";
 import {
   formatDepartmentIds,
   formatDocumentTitle,
+  formatIndexingStatus,
   formatSourceUri,
   formatUserName,
   formatVisibility,
@@ -73,6 +74,7 @@ export function KnowledgePage({ workspaceId }: PageProps) {
           <div className="table-row table-head">
             <span>문서</span>
             <span>공개 범위</span>
+            <span>인덱싱 상태</span>
             <span>부서</span>
             <span>청크</span>
           </div>
@@ -92,6 +94,7 @@ export function KnowledgePage({ workspaceId }: PageProps) {
                   <small>{formatSourceUri(document.source_uri)}</small>
                 </span>
                 <span>{formatVisibility(document.visibility)}</span>
+                <span>{formatIndexingStatus(document.indexing_status)}</span>
                 <span>{formatDepartmentIds(document.department_ids)}</span>
                 <span>{document.chunk_count}</span>
               </button>
@@ -106,6 +109,10 @@ export function KnowledgePage({ workspaceId }: PageProps) {
         {detail ? (
           <>
             <dl className="evidence-list">
+              <div>
+                <dt>인덱싱 상태</dt>
+                <dd>{formatIndexingStatus(detail.document.indexing_status)}</dd>
+              </div>
               <div>
                 <dt>소유자</dt>
                 <dd>{formatUserName(detail.document.owner_user_id)}</dd>

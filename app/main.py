@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from app.auth import AuthContextError, SessionSearchQuery, build_auth_context_provider_from_env
 from app.demo_data import seed_demo_state
 from app.evaluation import list_eval_runs, run_eval
-from app.models import AnswerQuery, DocumentCreate, EvalRunRequest, RetrievalQuery
+from app.models import AnswerQuery, DocumentCreate, DocumentUpdate, EvalRunRequest, RetrievalQuery
 from app.personas import DEMO_PERSONAS, DEMO_WORKSPACE
 from app.runtime import build_services_from_env
 
@@ -58,6 +58,45 @@ def create_app(seed_demo: bool = True) -> Any:
             if result is None:
                 raise HTTPException(status_code=404, detail="document not found")
             return result.model_dump(mode="json")
+
+        @app.patch("/admin/documents/{document_id}")
+        def admin_update_document(document_id: str, payload: DocumentUpdate, request: Request) -> dict[str, Any]:
+            try:
+                session = _require_admin_session(auth_provider, request.headers)
+            except AuthContextError as exc:
+                raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+            result = services.update_document(
+                workspace_id=session.workspace_id,
+                document_id=document_id,
+                payload=payload,
+                actor_user_id=session.user_id,
+            )
+            if result is None:
+                raise HTTPException(status_code=404, detail="document not found")
+            return result.model_dump(mode="json")
+
+        @app.delete("/admin/documents/{document_id}")
+        def admin_delete_document(document_id: str, request: Request) -> dict[str, Any]:
+            try:
+                session = _require_admin_session(auth_provider, request.headers)
+            except AuthContextError as exc:
+                raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+            result = services.delete_document(
+                workspace_id=session.workspace_id,
+                document_id=document_id,
+                actor_user_id=session.user_id,
+            )
+            if result is None:
+                raise HTTPException(status_code=404, detail="document not found")
+            return result.model_dump(mode="json")
+
+        @app.get("/admin/audit-logs")
+        def admin_audit_logs(request: Request) -> dict[str, Any]:
+            try:
+                session = _require_admin_session(auth_provider, request.headers)
+            except AuthContextError as exc:
+                raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+            return services.list_admin_audit_logs(session.workspace_id).model_dump(mode="json")
 
         @app.get("/metrics/summary")
         def metrics_summary(workspace_id: str) -> dict[str, Any]:
@@ -169,6 +208,45 @@ def _create_starlette_fallback(services: PolicyRagServices, auth_provider: Any) 
             return JSONResponse({"detail": "document not found"}, status_code=404)
         return JSONResponse(result.model_dump(mode="json"))
 
+    async def admin_update_document(request: Any) -> JSONResponse:
+        try:
+            session = _require_admin_session(auth_provider, request.headers)
+            payload = DocumentUpdate.model_validate(await request.json())
+            result = services.update_document(
+                workspace_id=session.workspace_id,
+                document_id=request.path_params["document_id"],
+                payload=payload,
+                actor_user_id=session.user_id,
+            )
+        except AuthContextError as exc:
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+        except ValidationError as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=422)
+        if result is None:
+            return JSONResponse({"detail": "document not found"}, status_code=404)
+        return JSONResponse(result.model_dump(mode="json"))
+
+    async def admin_delete_document(request: Any) -> JSONResponse:
+        try:
+            session = _require_admin_session(auth_provider, request.headers)
+            result = services.delete_document(
+                workspace_id=session.workspace_id,
+                document_id=request.path_params["document_id"],
+                actor_user_id=session.user_id,
+            )
+        except AuthContextError as exc:
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+        if result is None:
+            return JSONResponse({"detail": "document not found"}, status_code=404)
+        return JSONResponse(result.model_dump(mode="json"))
+
+    async def admin_audit_logs(request: Any) -> JSONResponse:
+        try:
+            session = _require_admin_session(auth_provider, request.headers)
+        except AuthContextError as exc:
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+        return JSONResponse(services.list_admin_audit_logs(session.workspace_id).model_dump(mode="json"))
+
     async def metrics_summary(request: Any) -> JSONResponse:
         workspace_id = request.query_params.get("workspace_id")
         if not workspace_id:
@@ -266,6 +344,9 @@ def _create_starlette_fallback(services: PolicyRagServices, auth_provider: Any) 
             Route("/documents", ingest_document, methods=["POST"]),
             Route("/documents", list_documents, methods=["GET"]),
             Route("/documents/{document_id}", get_document_detail, methods=["GET"]),
+            Route("/admin/documents/{document_id}", admin_update_document, methods=["PATCH"]),
+            Route("/admin/documents/{document_id}", admin_delete_document, methods=["DELETE"]),
+            Route("/admin/audit-logs", admin_audit_logs, methods=["GET"]),
             Route("/metrics/summary", metrics_summary, methods=["GET"]),
             Route("/metrics/trend", metrics_trend, methods=["GET"]),
             Route("/queries/recent", recent_queries, methods=["GET"]),
@@ -283,6 +364,13 @@ def _create_starlette_fallback(services: PolicyRagServices, auth_provider: Any) 
 
 def _current_auth_session(auth_provider: Any, headers: Any) -> Any:
     return auth_provider.current_session(headers)
+
+
+def _require_admin_session(auth_provider: Any, headers: Any) -> Any:
+    session = _current_auth_session(auth_provider, headers)
+    if session.role != "admin":
+        raise AuthContextError(status_code=403, detail="admin role required")
+    return session
 
 
 def _retrieval_query_from_session(session: Any, payload: SessionSearchQuery) -> RetrievalQuery:

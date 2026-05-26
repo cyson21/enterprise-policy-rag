@@ -10,7 +10,7 @@
 | 도메인 | 엔터프라이즈 사내 정책/업무 문서 RAG |
 | 목적 | AI Native Back-end Engineer 포지션 대응용 사이드 프로젝트 |
 | 핵심 아키텍처 | React UI + FastAPI + PostgreSQL/pgvector + provider abstraction + eval/ops |
-| 현재 Phase | Phase 5A production auth/SSO boundary implemented |
+| 현재 Phase | Phase 5B admin workflow API implemented |
 | 실제 LLM API | 후순위. fake provider first |
 | 온프레미스 | 1차 범위 제외 |
 
@@ -60,6 +60,7 @@
 - Production auth/SSO는 실제 IdP 연결 전에 `AuthContextProvider` boundary로 먼저 분리한다.
 - 기본 auth provider는 `demo`이며, future production gateway handoff는 `AUTH_CONTEXT_PROVIDER=trusted_headers`로 명시 선택한다.
 - session-bound retrieval/answer endpoint는 request body의 권한 필드를 신뢰하지 않고 auth context에서 `workspace_id`, `user_id`, `department_ids`를 구성한다.
+- Admin workflow는 admin role session에 한해 document update/delete, synchronous re-indexing status, audit log를 제공한다.
 
 ## Phase 0 완료 기준
 
@@ -374,6 +375,17 @@
 | UI status | top bar에 auth session mode 표시 추가 |
 | Verification | auth context API tests, frontend smoke, compile smoke 통과 |
 
+## Phase 5B 진행 스냅샷
+
+| 항목 | 결과 |
+|---|---|
+| Admin auth | `role=admin` session만 admin endpoint 접근 가능 |
+| Document update | `PATCH /admin/documents/{document_id}`가 문서 metadata/content를 교체하고 chunks/embeddings를 재생성 |
+| Document delete | `DELETE /admin/documents/{document_id}`가 문서와 chunks를 제거 |
+| Indexing state | `documents.indexing_status`와 API response에 `ready` 상태 노출 |
+| Audit log | `GET /admin/audit-logs`가 document update/delete 이력을 반환 |
+| UI exposure | Knowledge Library에 인덱싱 상태 표시 추가 |
+
 ## Phase 2 완료 산출물
 
 - LLM provider interface
@@ -396,7 +408,7 @@
 
 ## 남은 확장 후보
 
-- Admin workflow 확장
+- Admin UI controls
 - Real IdP/OIDC adapter
 
 ## 참고 벤치마크

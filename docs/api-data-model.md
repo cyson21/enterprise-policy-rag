@@ -13,6 +13,9 @@ Date: 2026-05-21
 | `POST` | `/documents` | implemented | Markdown/TXT document ingestion |
 | `GET` | `/documents` | implemented | Knowledge Library document list |
 | `GET` | `/documents/{document_id}` | implemented | document detail and chunk preview |
+| `PATCH` | `/admin/documents/{document_id}` | implemented | admin document replacement and synchronous re-index |
+| `DELETE` | `/admin/documents/{document_id}` | implemented | admin document deletion |
+| `GET` | `/admin/audit-logs` | implemented | session-bound admin audit log list |
 | `POST` | `/retrieve` | implemented | permission-aware retrieval-only flow |
 | `POST` | `/answer` | implemented | fake-provider answer with citations and refusal |
 | `POST` | `/auth/retrieve` | implemented | session-bound retrieval that derives permissions from auth context |
@@ -99,6 +102,20 @@ Used by `/auth/retrieve` and `/auth/answer`.
 | `score_threshold` | number | `0..1` |
 
 If `user_id`, `workspace_id`, or `department_ids` are sent in this body, the session-bound endpoints ignore them and derive permission inputs from `AuthSession`.
+
+### `DocumentUpdate`
+
+Used by `PATCH /admin/documents/{document_id}`. The endpoint is session-bound and requires `role=admin`.
+
+| Field | Type | Notes |
+|---|---|---|
+| `title` | string or null | replacement title |
+| `source_uri` | string or null | source pointer |
+| `content` | string or null | when present, chunks and embeddings are regenerated |
+| `content_type` | string or null | same supported values as `DocumentCreate` |
+| `owner_user_id` | string or null | replacement owner |
+| `department_ids` | string[] or null | normalized unique list |
+| `visibility` | string or null | `public`, `department`, `private` |
 
 ## Response Highlights
 
@@ -190,6 +207,29 @@ If `user_id`, `workspace_id`, or `department_ids` are sent in this body, the ses
 - `citation_count`
 - `avg_score`
 
+### Admin
+
+`PATCH /admin/documents/{document_id}` returns:
+
+- `document`: updated document summary including `indexing_status`
+- `chunk_count`: regenerated chunk count
+
+`DELETE /admin/documents/{document_id}` returns:
+
+- `document_id`
+- `workspace_id`
+- `deleted`
+
+`GET /admin/audit-logs` returns append-only admin audit log entries:
+
+- `id`
+- `workspace_id`
+- `actor_user_id`
+- `action`
+- `document_id`
+- `details`
+- `created_at`
+
 ## Current PostgreSQL Schema
 
 ### `workspaces`
@@ -212,6 +252,7 @@ If `user_id`, `workspace_id`, or `department_ids` are sent in this body, the ses
 | `owner_user_id` | `TEXT` |
 | `department_ids` | `TEXT[]` |
 | `visibility` | `TEXT` |
+| `indexing_status` | `TEXT` |
 | `created_at` | `TIMESTAMPTZ` |
 
 ### `document_chunks`
@@ -320,6 +361,18 @@ If `user_id`, `workspace_id`, or `department_ids` are sent in this body, the ses
 | `citation_document_ids` | `TEXT[]` |
 | `retrieval_hit` | `BOOLEAN` |
 | `citation_covered` | `BOOLEAN` |
+| `created_at` | `TIMESTAMPTZ` |
+
+### `admin_audit_logs`
+
+| Field | Type |
+|---|---|
+| `id` | `TEXT PRIMARY KEY` |
+| `workspace_id` | `TEXT REFERENCES workspaces(id)` |
+| `actor_user_id` | `TEXT` |
+| `action` | `TEXT` |
+| `document_id` | `TEXT` |
+| `details` | `JSONB` |
 | `created_at` | `TIMESTAMPTZ` |
 
 ## Planned Persistent Tables

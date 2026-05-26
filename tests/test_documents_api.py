@@ -55,6 +55,7 @@ async def test_document_list_api_returns_metadata_and_chunk_count():
         "owner_user_id": "owner-1",
         "department_ids": ["security"],
         "visibility": "department",
+        "indexing_status": "ready",
         "chunk_count": 1,
     }
 
