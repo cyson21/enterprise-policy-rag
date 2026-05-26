@@ -110,9 +110,9 @@ The local `.vercel` directory is intentionally ignored by Git.
 
 ## Automatic Deployment Status
 
-The GitHub repository exists and `main` has been pushed. Direct Vercel Git connection is not complete yet.
+The GitHub repository exists, `main` has been pushed, and the Vercel project is connected to `cyson21/enterprise-policy-rag`.
 
-Attempted:
+Connection check:
 
 ```bash
 pnpm dlx vercel git connect https://github.com/cyson21/enterprise-policy-rag.git --yes
@@ -121,13 +121,17 @@ pnpm dlx vercel git connect https://github.com/cyson21/enterprise-policy-rag.git
 Result:
 
 ```text
-Failed to connect cyson21/enterprise-policy-rag to project.
+cyson21/enterprise-policy-rag is already connected to your project.
 ```
 
-Deploy-hook fallback was also attempted, but Vercel only allows deploy hooks after the project is connected to a Git repository.
+Deploy hook listing also confirms the project is now a Git-connected project:
 
-Next action:
+```bash
+pnpm dlx vercel deploy-hooks list --project enterprise-policy-rag --scope cyson21s-projects
+```
 
 ```text
-Open Vercel Project Settings -> Git and grant the Vercel GitHub App access to cyson21/enterprise-policy-rag.
+status: ok
+projectName: enterprise-policy-rag
+hooks: []
 ```

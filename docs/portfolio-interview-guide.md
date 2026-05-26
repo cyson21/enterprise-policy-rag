@@ -52,7 +52,6 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 
 ## Next Steps
 
-- Vercel GitHub App repo access 승인 후 commit push 기반 자동 배포
 - production auth/SSO 설계
 - admin workflow: document update/delete, indexing state, audit log
 - optional live OpenAI smoke with a controlled API key

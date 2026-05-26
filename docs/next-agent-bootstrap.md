@@ -102,7 +102,6 @@ GitHub repo: https://github.com/cyson21/enterprise-policy-rag
 다음 구현 에이전트는 전체 제품 설계에 맞춰 아래 범위를 우선한다.
 
 ```text
-Vercel GitHub App repo access approval for automatic deployments
 Production auth/SSO design
 Admin workflow expansion
 ```
@@ -145,7 +144,7 @@ node scripts/smoke-static-demo.mjs
 node scripts/run-web-task.mjs preview:static
 ```
 
-The public static demo is deployed at `https://enterprise-policy-rag.vercel.app`. GitHub remote is `https://github.com/cyson21/enterprise-policy-rag`. Vercel Git integration is not connected yet because the Vercel GitHub App needs browser approval for this newly created repo.
+The public static demo is deployed at `https://enterprise-policy-rag.vercel.app`. GitHub remote is `https://github.com/cyson21/enterprise-policy-rag`. Vercel Git integration is connected to `cyson21/enterprise-policy-rag`; future pushes to `main` should use Vercel Git automation.
 
 외부 LLM 호출의 기본 실행, production auth/SSO, production admin dashboard는 다음 단위에 넣지 않는다.
 

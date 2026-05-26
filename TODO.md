@@ -150,13 +150,11 @@
   - 결과: `https://enterprise-policy-rag.vercel.app`
 - [x] GitHub remote 생성과 push
   - 결과: `https://github.com/cyson21/enterprise-policy-rag`
-- [!] Vercel Git integration 연결
-  - 차단: Vercel CLI `git connect`가 GitHub repo access 오류로 실패했다. Vercel GitHub App이 새 repo에 접근하도록 브라우저에서 승인해야 한다.
+- [x] Vercel Git integration 연결
+  - 결과: GitHub App 접근 승인 후 `cyson21/enterprise-policy-rag`가 Vercel project에 연결되었고, deploy hook 조회가 정상 동작한다.
 
 ## Phase 5. 남은 확장 후보
 
-- [ ] Vercel GitHub App repo access 승인
-  - 목표: Vercel Project Settings -> Git에서 `cyson21/enterprise-policy-rag` 접근을 승인하고 자동 배포를 연결한다.
 - [ ] Production auth/SSO 설계
   - 목표: persona selector를 실제 auth context와 연결할 때 필요한 boundary를 설계한다.
 - [ ] Admin workflow 확장

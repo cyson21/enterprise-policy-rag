@@ -71,4 +71,4 @@ https://github.com/cyson21/enterprise-policy-rag
 
 ## Next Valuable Slice
 
-Approve Vercel GitHub App access for automatic deployments, then design production auth/SSO and admin workflows.
+Design production auth/SSO and admin workflows. A controlled live OpenAI smoke can be added later without changing the fake-provider-first local path.
