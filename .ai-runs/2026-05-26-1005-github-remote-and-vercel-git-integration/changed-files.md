@@ -18,6 +18,7 @@ origin https://github.com/cyson21/enterprise-policy-rag.git
 - `TODO.md`
   - Marked GitHub remote creation/push complete.
   - Marked Vercel Git integration as blocked on GitHub App repo access approval.
+  - Refreshed the last-updated date for the final publish pass.
 - `docs/project-tracking.md`
   - Added Phase 4E status and blocker details.
 - `docs/next-agent-bootstrap.md`
@@ -28,6 +29,11 @@ origin https://github.com/cyson21/enterprise-policy-rag.git
   - Added repository URL and updated next slice.
 - `docs/portfolio-interview-guide.md`
   - Added repository URL and updated next step.
+
+## Final Verification Refresh
+
+- `.ai-runs/2026-05-26-1005-github-remote-and-vercel-git-integration/verification.md`
+  - Added final local tracking and remote SHA verification after the GitHub status docs commit.
 
 ## Side-Projects Hub
 

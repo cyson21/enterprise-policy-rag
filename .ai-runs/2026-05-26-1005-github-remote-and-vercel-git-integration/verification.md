@@ -105,6 +105,20 @@ server: Vercel
 x-vercel-cache: HIT
 ```
 
+## Final Remote Check
+
+```bash
+git status -sb
+git ls-remote origin refs/heads/main
+```
+
+Result:
+
+```text
+## main...origin/main
+0c6bf6182990daa69002c220b214a81b6dcb4fbc	refs/heads/main
+```
+
 ## Working Tree Check
 
 ```bash
