@@ -36,7 +36,7 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 
 ## Tradeoffs
 
-- 실제 SSO/OIDC 대신 persona selector를 사용한다. 포트폴리오에서는 권한 시나리오를 빠르게 보여주는 장점이 있고, production auth는 후속 boundary로 남긴다.
+- 실제 IdP/OIDC 연결 대신 demo auth context와 persona selector를 사용한다. 포트폴리오에서는 권한 시나리오를 빠르게 보여주고, production 전환 경계는 `AuthContextProvider`와 session-bound endpoint로 분리했다.
 - 대규모 문서 파서나 PDF ingestion은 제외했다. 첫 범위는 Markdown/TXT chunking, permission retrieval, citation, operations에 집중한다.
 - OpenAI live transport는 구현되어 있지만 기본 테스트에서는 호출하지 않는다. 비용과 secret 의존성을 CI에 넣지 않기 위해 mock HTTP opener로 검증한다.
 - 온프레미스 배포와 Kubernetes 운영 자동화는 1차 범위에서 제외했다.
@@ -52,6 +52,6 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 
 ## Next Steps
 
-- production auth/SSO 설계
 - admin workflow: document update/delete, indexing state, audit log
+- real IdP/OIDC adapter behind `AuthContextProvider`
 - optional live OpenAI smoke with a controlled API key

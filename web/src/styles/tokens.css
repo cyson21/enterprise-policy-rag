@@ -160,6 +160,11 @@ select {
   background: #e0f2fe;
 }
 
+.status-pill.auth {
+  color: #166534;
+  background: #dcfce7;
+}
+
 .persona-selector {
   display: flex;
   align-items: center;

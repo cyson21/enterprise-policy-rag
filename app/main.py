@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from app.auth import AuthContextError, SessionSearchQuery, build_auth_context_provider_from_env
 from app.demo_data import seed_demo_state
 from app.evaluation import list_eval_runs, run_eval
 from app.models import AnswerQuery, DocumentCreate, EvalRunRequest, RetrievalQuery
@@ -13,10 +14,11 @@ from app.runtime import build_services_from_env
 
 def create_app(seed_demo: bool = True) -> Any:
     services = build_services_from_env()
+    auth_provider = build_auth_context_provider_from_env()
     if seed_demo:
         seed_demo_state(services)
     try:
-        from fastapi import FastAPI, HTTPException
+        from fastapi import FastAPI, HTTPException, Request
 
         app = FastAPI(title="Enterprise Policy RAG", version="0.1.0")
 
@@ -31,6 +33,13 @@ def create_app(seed_demo: bool = True) -> Any:
         @app.get("/personas")
         def personas() -> dict[str, Any]:
             return {"personas": [persona.model_dump(mode="json") for persona in DEMO_PERSONAS]}
+
+        @app.get("/auth/session")
+        def auth_session(request: Request) -> dict[str, Any]:
+            try:
+                return _current_auth_session(auth_provider, request.headers).model_dump(mode="json")
+            except AuthContextError as exc:
+                raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
         @app.post("/documents", status_code=201)
         def ingest_document(payload: DocumentCreate) -> dict[str, Any]:
@@ -89,14 +98,30 @@ def create_app(seed_demo: bool = True) -> Any:
         def answer(payload: AnswerQuery) -> dict[str, Any]:
             return services.answer(payload).model_dump(mode="json")
 
+        @app.post("/auth/retrieve")
+        def auth_retrieve(payload: SessionSearchQuery, request: Request) -> dict[str, Any]:
+            try:
+                session = _current_auth_session(auth_provider, request.headers)
+            except AuthContextError as exc:
+                raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+            return services.retrieve(_retrieval_query_from_session(session, payload)).model_dump(mode="json")
+
+        @app.post("/auth/answer")
+        def auth_answer(payload: SessionSearchQuery, request: Request) -> dict[str, Any]:
+            try:
+                session = _current_auth_session(auth_provider, request.headers)
+            except AuthContextError as exc:
+                raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+            return services.answer(_answer_query_from_session(session, payload)).model_dump(mode="json")
+
         return app
     except ModuleNotFoundError as exc:
         if exc.name != "fastapi":
             raise
-        return _create_starlette_fallback(services)
+        return _create_starlette_fallback(services, auth_provider)
 
 
-def _create_starlette_fallback(services: PolicyRagServices) -> Any:
+def _create_starlette_fallback(services: PolicyRagServices, auth_provider: Any) -> Any:
     from starlette.applications import Starlette
     from starlette.responses import JSONResponse
     from starlette.routing import Route
@@ -109,6 +134,13 @@ def _create_starlette_fallback(services: PolicyRagServices) -> Any:
 
     async def personas(_request: Any) -> JSONResponse:
         return JSONResponse({"personas": [persona.model_dump(mode="json") for persona in DEMO_PERSONAS]})
+
+    async def auth_session(request: Any) -> JSONResponse:
+        try:
+            session = _current_auth_session(auth_provider, request.headers)
+        except AuthContextError as exc:
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+        return JSONResponse(session.model_dump(mode="json"))
 
     async def ingest_document(request: Any) -> JSONResponse:
         try:
@@ -203,11 +235,34 @@ def _create_starlette_fallback(services: PolicyRagServices) -> Any:
             return JSONResponse({"detail": str(exc)}, status_code=422)
         return JSONResponse(result.model_dump(mode="json"))
 
+    async def auth_retrieve(request: Any) -> JSONResponse:
+        try:
+            session = _current_auth_session(auth_provider, request.headers)
+            payload = SessionSearchQuery.model_validate(await request.json())
+            result = services.retrieve(_retrieval_query_from_session(session, payload))
+        except AuthContextError as exc:
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+        except ValidationError as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=422)
+        return JSONResponse(result.model_dump(mode="json"))
+
+    async def auth_answer(request: Any) -> JSONResponse:
+        try:
+            session = _current_auth_session(auth_provider, request.headers)
+            payload = SessionSearchQuery.model_validate(await request.json())
+            result = services.answer(_answer_query_from_session(session, payload))
+        except AuthContextError as exc:
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+        except ValidationError as exc:
+            return JSONResponse({"detail": str(exc)}, status_code=422)
+        return JSONResponse(result.model_dump(mode="json"))
+
     return Starlette(
         routes=[
             Route("/health", health, methods=["GET"]),
             Route("/workspaces/current", current_workspace, methods=["GET"]),
             Route("/personas", personas, methods=["GET"]),
+            Route("/auth/session", auth_session, methods=["GET"]),
             Route("/documents", ingest_document, methods=["POST"]),
             Route("/documents", list_documents, methods=["GET"]),
             Route("/documents/{document_id}", get_document_detail, methods=["GET"]),
@@ -220,8 +275,29 @@ def _create_starlette_fallback(services: PolicyRagServices) -> Any:
             Route("/eval-runs", eval_runs, methods=["GET"]),
             Route("/retrieve", retrieve, methods=["POST"]),
             Route("/answer", answer, methods=["POST"]),
+            Route("/auth/retrieve", auth_retrieve, methods=["POST"]),
+            Route("/auth/answer", auth_answer, methods=["POST"]),
         ]
     )
+
+
+def _current_auth_session(auth_provider: Any, headers: Any) -> Any:
+    return auth_provider.current_session(headers)
+
+
+def _retrieval_query_from_session(session: Any, payload: SessionSearchQuery) -> RetrievalQuery:
+    return RetrievalQuery(
+        workspace_id=session.workspace_id,
+        user_id=session.user_id,
+        department_ids=session.department_ids,
+        query=payload.query,
+        top_k=payload.top_k,
+        score_threshold=payload.score_threshold,
+    )
+
+
+def _answer_query_from_session(session: Any, payload: SessionSearchQuery) -> AnswerQuery:
+    return AnswerQuery(**_retrieval_query_from_session(session, payload).model_dump())
 
 
 app = create_app()

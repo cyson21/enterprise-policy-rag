@@ -3,7 +3,7 @@ import type { ComponentType } from "react";
 import type { Persona } from "../../fixtures/personas";
 import type { RouteId } from "../../app/routes";
 import { routes } from "../../app/routes";
-import { formatEnvironment, formatProvider, formatWorkspaceName } from "../../utils/display";
+import { formatAuthMode, formatEnvironment, formatProvider, formatWorkspaceName } from "../../utils/display";
 import { PersonaSelector } from "../persona/PersonaSelector";
 
 type AppShellProps = {
@@ -14,6 +14,7 @@ type AppShellProps = {
   workspaceName: string;
   environment: string;
   provider: string;
+  authMode: string;
   onRouteChange: (routeId: RouteId) => void;
   onPersonaChange: (personaId: string) => void;
 };
@@ -26,6 +27,7 @@ export function AppShell({
   workspaceName,
   environment,
   provider,
+  authMode,
   onRouteChange,
   onPersonaChange,
 }: AppShellProps) {
@@ -72,6 +74,7 @@ export function AppShell({
           <div className="top-actions">
             <span className="status-pill">{formatEnvironment(environment)}</span>
             <span className="status-pill provider">{formatProvider(provider)}</span>
+            <span className="status-pill auth">권한 세션: {formatAuthMode(authMode)}</span>
             <PersonaSelector personas={personas} activePersonaId={activePersonaId} onChange={onPersonaChange} />
           </div>
         </header>

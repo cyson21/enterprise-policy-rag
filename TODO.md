@@ -155,7 +155,9 @@
 
 ## Phase 5. 남은 확장 후보
 
-- [ ] Production auth/SSO 설계
-  - 목표: persona selector를 실제 auth context와 연결할 때 필요한 boundary를 설계한다.
+- [x] Production auth/SSO boundary 설계와 최소 구현
+  - 결과: `GET /auth/session`, `POST /auth/retrieve`, `POST /auth/answer`, demo/trusted header auth provider, UI auth status를 추가했다.
 - [ ] Admin workflow 확장
   - 목표: 문서 생성/수정/삭제, indexing 상태 전이, audit log를 추가한다.
+- [ ] Real IdP/OIDC adapter
+  - 목표: 현재 trusted header boundary 뒤에 실제 OIDC/JWT 검증 provider를 붙인다.

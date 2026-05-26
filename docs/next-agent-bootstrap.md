@@ -97,13 +97,14 @@ Static read-only demo build with `VITE_DEMO_MODE=static`
 Vercel static deploy config
 Public Vercel demo: https://enterprise-policy-rag.vercel.app
 GitHub repo: https://github.com/cyson21/enterprise-policy-rag
+Production auth/SSO boundary with demo and trusted header providers
 ```
 
 다음 구현 에이전트는 전체 제품 설계에 맞춰 아래 범위를 우선한다.
 
 ```text
-Production auth/SSO design
 Admin workflow expansion
+Real IdP/OIDC adapter
 ```
 
 PostgreSQL repository integration smoke는 Colima low-resource Docker daemon에서 완료되었다. 재검증이 필요하면 아래 명령을 사용한다.
@@ -146,7 +147,7 @@ node scripts/run-web-task.mjs preview:static
 
 The public static demo is deployed at `https://enterprise-policy-rag.vercel.app`. GitHub remote is `https://github.com/cyson21/enterprise-policy-rag`. Vercel Git integration is connected to `cyson21/enterprise-policy-rag`; future pushes to `main` should use Vercel Git automation.
 
-외부 LLM 호출의 기본 실행, production auth/SSO, production admin dashboard는 다음 단위에 넣지 않는다.
+외부 LLM 호출의 기본 실행, real IdP/OIDC adapter, production admin dashboard는 다음 단위에 넣지 않는다.
 
 ## 기록 방식
 

@@ -10,7 +10,7 @@
 | 도메인 | 엔터프라이즈 사내 정책/업무 문서 RAG |
 | 목적 | AI Native Back-end Engineer 포지션 대응용 사이드 프로젝트 |
 | 핵심 아키텍처 | React UI + FastAPI + PostgreSQL/pgvector + provider abstraction + eval/ops |
-| 현재 Phase | Phase 4F Vercel Git integration connected |
+| 현재 Phase | Phase 5A production auth/SSO boundary implemented |
 | 실제 LLM API | 후순위. fake provider first |
 | 온프레미스 | 1차 범위 제외 |
 
@@ -57,6 +57,9 @@
 - Public portfolio demo는 static read-only fake-provider build로 배포한다. 현재 production URL은 `https://enterprise-policy-rag.vercel.app`이다.
 - GitHub public repository는 `https://github.com/cyson21/enterprise-policy-rag`이다.
 - Vercel Git integration은 GitHub App repo access 승인 후 `cyson21/enterprise-policy-rag`에 연결했다.
+- Production auth/SSO는 실제 IdP 연결 전에 `AuthContextProvider` boundary로 먼저 분리한다.
+- 기본 auth provider는 `demo`이며, future production gateway handoff는 `AUTH_CONTEXT_PROVIDER=trusted_headers`로 명시 선택한다.
+- session-bound retrieval/answer endpoint는 request body의 권한 필드를 신뢰하지 않고 auth context에서 `workspace_id`, `user_id`, `department_ids`를 구성한다.
 
 ## Phase 0 완료 기준
 
@@ -359,6 +362,18 @@
 | Deploy hook check | `vercel deploy-hooks list --project enterprise-policy-rag --scope cyson21s-projects`가 project id와 empty hooks list를 정상 반환 |
 | Browser policy | 회사 작업 화면 노출을 피하기 위해 승인 이후 검증은 Chrome 없이 CLI로 진행 |
 
+## Phase 5A 진행 스냅샷
+
+| 항목 | 결과 |
+|---|---|
+| Auth design | `docs/internal/design/2026-05-26-production-auth-sso-design.md`에 SSO boundary와 제외 범위 기록 |
+| Auth provider | `DemoAuthContextProvider`, `TrustedHeaderAuthContextProvider`, env-gated `AUTH_CONTEXT_PROVIDER` 추가 |
+| Session API | `GET /auth/session`이 current workspace/user/department/role context 반환 |
+| Session-bound retrieval | `POST /auth/retrieve`가 auth context에서 permission filter 입력을 구성 |
+| Session-bound answer | `POST /auth/answer`가 auth context에서 citation permission filter 입력을 구성 |
+| UI status | top bar에 auth session mode 표시 추가 |
+| Verification | auth context API tests, frontend smoke, compile smoke 통과 |
+
 ## Phase 2 완료 산출물
 
 - LLM provider interface
@@ -381,8 +396,8 @@
 
 ## 남은 확장 후보
 
-- Production auth/SSO
 - Admin workflow 확장
+- Real IdP/OIDC adapter
 
 ## 참고 벤치마크
 

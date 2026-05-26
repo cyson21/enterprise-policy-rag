@@ -9,11 +9,14 @@ Date: 2026-05-21
 | `GET` | `/health` | implemented | API smoke |
 | `GET` | `/workspaces/current` | implemented | demo workspace context |
 | `GET` | `/personas` | implemented | demo persona and permission context |
+| `GET` | `/auth/session` | implemented | current auth/permission context boundary |
 | `POST` | `/documents` | implemented | Markdown/TXT document ingestion |
 | `GET` | `/documents` | implemented | Knowledge Library document list |
 | `GET` | `/documents/{document_id}` | implemented | document detail and chunk preview |
 | `POST` | `/retrieve` | implemented | permission-aware retrieval-only flow |
 | `POST` | `/answer` | implemented | fake-provider answer with citations and refusal |
+| `POST` | `/auth/retrieve` | implemented | session-bound retrieval that derives permissions from auth context |
+| `POST` | `/auth/answer` | implemented | session-bound answer that derives citations from auth context |
 | `GET` | `/metrics/summary` | implemented | query-log-based Operations metrics |
 | `GET` | `/metrics/trend` | implemented | daily retrieval/answer query trend |
 | `GET` | `/queries/recent` | implemented | recent retrieval/answer query rows |
@@ -38,6 +41,14 @@ Normal local tests run without `DATABASE_URL` so they stay API-key-free and Dock
 | no `LLM_PROVIDER` | `FakeLLMProvider` | default local and CI path |
 | `LLM_PROVIDER=fake` | `FakeLLMProvider` | API-key-free |
 | `LLM_PROVIDER=openai` | `OpenAILLMProvider` + `OpenAIHTTPTransport` | requires `OPENAI_API_KEY`; live HTTP path is opt-in and not part of default verification |
+
+## Auth Context Selection
+
+| Environment | Auth provider | Notes |
+|---|---|---|
+| no `AUTH_CONTEXT_PROVIDER` | `demo` | default local and CI path, uses demo persona context |
+| `AUTH_CONTEXT_PROVIDER=demo` | `demo` | API-key-free and IdP-free |
+| `AUTH_CONTEXT_PROVIDER=trusted_headers` | `trusted_headers` | future gateway/SSO handoff mode; expects trusted identity headers from a protected upstream |
 
 ## Core Request Models
 
@@ -64,6 +75,30 @@ Normal local tests run without `DATABASE_URL` so they stay API-key-free and Dock
 | `query` | string | user question |
 | `top_k` | integer | `1..20` |
 | `score_threshold` | number | `0..1` |
+
+### `AuthSession`
+
+| Field | Type | Notes |
+|---|---|---|
+| `workspace_id` | string | tenant/workspace boundary |
+| `user_id` | string | authenticated subject |
+| `display_name` | string | display hint |
+| `department_ids` | string[] | permission filter input |
+| `role` | string | `employee` or `admin` |
+| `auth_mode` | string | `demo` or `trusted_headers` |
+| `source` | string | source of the session context |
+
+### `SessionSearchQuery`
+
+Used by `/auth/retrieve` and `/auth/answer`.
+
+| Field | Type | Notes |
+|---|---|---|
+| `query` | string | user question |
+| `top_k` | integer | `1..20` |
+| `score_threshold` | number | `0..1` |
+
+If `user_id`, `workspace_id`, or `department_ids` are sent in this body, the session-bound endpoints ignore them and derive permission inputs from `AuthSession`.
 
 ## Response Highlights
 
