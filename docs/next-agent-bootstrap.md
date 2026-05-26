@@ -43,6 +43,7 @@
 19. `.ai-runs/2026-05-22-1812-phase4b-openai-and-portfolio-closeout/`
 20. `.ai-runs/2026-05-23-0412-static-demo-deploy-readiness/`
 21. `.ai-runs/2026-05-26-1005-github-remote-and-vercel-git-integration/`
+22. `.ai-runs/2026-05-26-1147-admin-ui-controls/`
 
 ## 첫 구현 단위 추천
 
@@ -99,13 +100,14 @@ Public Vercel demo: https://enterprise-policy-rag.vercel.app
 GitHub repo: https://github.com/cyson21/enterprise-policy-rag
 Production auth/SSO boundary with demo and trusted header providers
 Admin document workflow API with indexing status and audit logs
+Knowledge Library admin UI controls with update/delete/audit log flow
 ```
 
 다음 구현 에이전트는 전체 제품 설계에 맞춰 아래 범위를 우선한다.
 
 ```text
-Admin UI controls
 Real IdP/OIDC adapter
+Controlled live OpenAI smoke
 ```
 
 PostgreSQL repository integration smoke는 Colima low-resource Docker daemon에서 완료되었다. 재검증이 필요하면 아래 명령을 사용한다.

@@ -57,7 +57,7 @@ RAG를 단순 챗봇 기능으로 구현하는 것이 아니라, 실제 엔터�
 
 ## Current Implementation
 
-현재 구현된 단위는 backend retrieval core prototype, Phase 1A frontend shell, Phase 1B live Search Console, Phase 1C Knowledge Library API/UI, Phase 2 fake answer layer, Phase 3 fake eval runner, query log 기반 Operations API, top evidence persistence, eval persistence, Operations query trend/detail, opt-in OpenAI Responses API transport, production auth/SSO boundary, admin document workflow, 한국어 데모 UI와 최신 screenshot assets입니다.
+현재 구현된 단위는 backend retrieval core prototype, Phase 1A frontend shell, Phase 1B live Search Console, Phase 1C Knowledge Library API/UI, Phase 2 fake answer layer, Phase 3 fake eval runner, query log 기반 Operations API, top evidence persistence, eval persistence, Operations query trend/detail, opt-in OpenAI Responses API transport, production auth/SSO boundary, admin document workflow API, Knowledge Library admin UI controls, 한국어 데모 UI와 최신 screenshot assets입니다.
 
 - FastAPI application skeleton: `GET /health`, `POST /documents`, `GET /documents`, `GET /documents/{document_id}`, `PATCH /admin/documents/{document_id}`, `DELETE /admin/documents/{document_id}`, `GET /admin/audit-logs`, `POST /retrieve`, `POST /answer`, `GET /auth/session`, `POST /auth/retrieve`, `POST /auth/answer`, `POST /eval-runs`, `GET /eval-runs`, `GET /metrics/summary`, `GET /metrics/trend`, `GET /queries/recent`, `GET /queries/{query_id}`, `GET /evidence/top`
 - Demo foundation API: `GET /workspaces/current`, `GET /personas`
@@ -81,6 +81,7 @@ RAG를 단순 챗봇 기능으로 구현하는 것이 아니라, 실제 엔터�
 - Search Console: live `/api/retrieve` and `/api/answer` calls with persona-based refresh, cited answer, citation list, and evidence panel
 - Knowledge Library: live `/api/documents` and `/api/documents/{document_id}` data with document detail and chunk previews
 - Admin workflow: admin-role document replacement/deletion, synchronous indexing status, append-only audit log API
+- Admin UI controls: Knowledge Library에서 admin persona로 document update/delete와 audit log 조회를 조작하고, non-admin persona는 읽기 전용 상태를 표시
 - Retrieval Lab: live `/api/retrieve` debugging with query, top-k, score threshold, persona, score, and access reason
 - Operations: query log 기반 `/api/metrics/summary`, `/api/metrics/trend`, `/api/queries/recent`, `/api/queries/{query_id}`, `/api/evidence/top`, persisted `/api/eval-runs` with usage, latency, cost estimate, retrieval hit, zero-result rate, daily retrieval/answer trend, recent query rows, selected query detail, top evidence documents, and eval history
 - Eval: `golden-demo` question set, fake-provider retrieval hit and citation coverage report
@@ -91,9 +92,9 @@ RAG를 단순 챗봇 기능으로 구현하는 것이 아니라, 실제 엔터�
 - GitHub repository: `https://github.com/cyson21/enterprise-policy-rag`
 - Vercel Git integration: connected to `cyson21/enterprise-policy-rag` for push-based deployments
 - Auth UI status: top bar shows the current auth session mode while keeping persona selection for demo scenarios
-- Tests: chunking, fake embedding, fake answer, permission filter, retrieval-only API flow, persona API, document API, answer API, eval API, retrieval metadata API, query log metrics/trend/detail, evidence persistence, eval persistence, PostgreSQL repository integration, frontend shell smoke
+- Tests: chunking, fake embedding, fake answer, permission filter, retrieval-only API flow, persona API, document API, answer API, eval API, retrieval metadata API, query log metrics/trend/detail, evidence persistence, eval persistence, PostgreSQL repository integration, frontend shell/static smoke
 
-다음 구현은 admin UI controls, real IdP/OIDC adapter, 또는 controlled live OpenAI smoke 중 하나로 나눌 수 있습니다. 기본 로컬/CI 경로는 계속 API key 없이 fake provider로 동작합니다.
+다음 구현은 real IdP/OIDC adapter 또는 controlled live OpenAI smoke 중 하나로 나눌 수 있습니다. 기본 로컬/CI 경로는 계속 API key 없이 fake provider로 동작합니다.
 
 ## Product Screen Plan
 

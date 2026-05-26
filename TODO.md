@@ -159,7 +159,9 @@
   - 결과: `GET /auth/session`, `POST /auth/retrieve`, `POST /auth/answer`, demo/trusted header auth provider, UI auth status를 추가했다.
 - [x] Admin workflow 확장
   - 결과: admin-role document update/delete, synchronous `indexing_status`, append-only audit log API를 추가했다.
-- [ ] Admin UI controls
-  - 목표: Knowledge Library에서 update/delete/status/audit 흐름을 조작할 수 있는 운영자 전용 화면을 추가한다.
+- [x] Admin UI controls
+  - 결과: Knowledge Library에 admin persona 전용 document update/delete controls와 audit log view를 추가했고, non-admin persona는 읽기 전용 안내를 표시한다.
 - [ ] Real IdP/OIDC adapter
   - 목표: 현재 trusted header boundary 뒤에 실제 OIDC/JWT 검증 provider를 붙인다.
+- [ ] Controlled live OpenAI smoke
+  - 목표: 기본 fake-provider 경로를 유지하면서 API key가 있을 때만 제한된 live OpenAI smoke를 실행한다.

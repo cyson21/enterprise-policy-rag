@@ -27,7 +27,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -391,6 +392,123 @@ select {
   font-size: 12px;
 }
 
+.admin-controls {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.admin-heading,
+.admin-audit-head,
+.admin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-heading h4,
+.admin-audit-head h4 {
+  margin: 3px 0 0;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.admin-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-controls input,
+.admin-controls select,
+.admin-controls textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+  font-weight: 400;
+}
+
+.admin-controls input,
+.admin-controls select {
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.admin-controls textarea {
+  min-height: 108px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.admin-actions button,
+.admin-audit-head button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.admin-actions button {
+  flex: 1;
+}
+
+.admin-audit-head button {
+  padding: 0 10px;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.admin-actions button.danger {
+  background: #b91c1c;
+}
+
+.admin-actions button:disabled,
+.admin-audit-head button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.admin-status {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.admin-audit ul {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-audit li {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+
+.admin-audit li span,
+.admin-audit li small {
+  color: var(--text-muted);
+}
+
 .answer-box {
   margin-bottom: 16px;
   padding: 14px;
@@ -727,6 +845,18 @@ select {
   .operations-console,
   .query-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-heading,
+  .admin-audit-head,
+  .admin-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-actions button,
+  .admin-audit-head button {
+    width: 100%;
   }
 
   .section-heading h2 {

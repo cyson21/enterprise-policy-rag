@@ -10,7 +10,7 @@
 | 도메인 | 엔터프라이즈 사내 정책/업무 문서 RAG |
 | 목적 | AI Native Back-end Engineer 포지션 대응용 사이드 프로젝트 |
 | 핵심 아키텍처 | React UI + FastAPI + PostgreSQL/pgvector + provider abstraction + eval/ops |
-| 현재 Phase | Phase 5B admin workflow API implemented |
+| 현재 Phase | Phase 5C admin UI controls implemented |
 | 실제 LLM API | 후순위. fake provider first |
 | 온프레미스 | 1차 범위 제외 |
 
@@ -61,6 +61,7 @@
 - 기본 auth provider는 `demo`이며, future production gateway handoff는 `AUTH_CONTEXT_PROVIDER=trusted_headers`로 명시 선택한다.
 - session-bound retrieval/answer endpoint는 request body의 권한 필드를 신뢰하지 않고 auth context에서 `workspace_id`, `user_id`, `department_ids`를 구성한다.
 - Admin workflow는 admin role session에 한해 document update/delete, synchronous re-indexing status, audit log를 제공한다.
+- Admin UI controls는 별도 dashboard route가 아니라 Knowledge Library의 문서 상세 패널 안에 배치한다.
 
 ## Phase 0 완료 기준
 
@@ -386,6 +387,17 @@
 | Audit log | `GET /admin/audit-logs`가 document update/delete 이력을 반환 |
 | UI exposure | Knowledge Library에 인덱싱 상태 표시 추가 |
 
+## Phase 5C 진행 스냅샷
+
+| 항목 | 결과 |
+|---|---|
+| Admin controls | Knowledge Library 문서 상세 패널에 `관리 작업` 섹션 추가 |
+| Document update UI | admin persona에서 문서명, 공개 범위, 부서, 본문을 수정하고 `PATCH /admin/documents/{document_id}` 호출 |
+| Document delete UI | admin persona에서 선택 문서를 삭제하고 문서 목록/상세 상태를 갱신 |
+| Audit log UI | admin persona에서 `GET /admin/audit-logs`를 호출하고 최근 update/delete 이력을 표시 |
+| Read-only state | non-admin persona는 같은 화면에서 관리 작업 비활성 안내만 표시 |
+| Static demo fallback | `VITE_DEMO_MODE=static`에서 admin 작업과 감사 로그가 deterministic fake data로 동작 |
+
 ## Phase 2 완료 산출물
 
 - LLM provider interface
@@ -408,8 +420,8 @@
 
 ## 남은 확장 후보
 
-- Admin UI controls
 - Real IdP/OIDC adapter
+- Controlled live OpenAI smoke
 
 ## 참고 벤치마크
 
