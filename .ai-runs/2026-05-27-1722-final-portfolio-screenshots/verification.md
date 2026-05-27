@@ -101,3 +101,27 @@ rg -n "operations-demo-ko-v7|operations-demo-ko-v12|Portfolio screenshot refresh
 ```
 
 Result: no stale current-doc screenshot references.
+
+## Git and Deployment
+
+```bash
+git commit -m "Docs: 포트폴리오 스크린샷 최종화"
+git push origin main
+```
+
+Result: pushed `0264faf` to `origin/main`.
+
+```bash
+pnpm dlx vercel ls enterprise-policy-rag --scope cyson21s-projects
+pnpm dlx vercel inspect https://enterprise-policy-k7zx1o7e7-cyson21s-projects.vercel.app --scope cyson21s-projects
+curl -I -L https://enterprise-policy-rag.vercel.app
+curl -s -L https://enterprise-policy-rag.vercel.app | rg -n "Enterprise Policy RAG|assets/index-DzMGZ5wQ"
+```
+
+Result:
+
+- Latest deployment: `dpl_FeF8xphSrHCRrpht5S8Ef5djqSeJ`
+- Deployment status: `Ready`
+- Production alias: `https://enterprise-policy-rag.vercel.app`
+- Production HTTP status: `HTTP/2 200`
+- Served static asset hash includes `assets/index-DzMGZ5wQ.css`
