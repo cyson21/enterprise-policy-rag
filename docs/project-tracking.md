@@ -432,7 +432,7 @@
 | Operations mobile full page | `docs/assets/operations-demo-ko-v13-mobile-full-page.jpg` 500x2783, actual `scrollHeight=2783` 기준 |
 | Knowledge admin desktop | `docs/assets/knowledge-admin-demo-ko-v1-desktop.jpg` 1440x1350 |
 | Visual QA | `view_image`로 right/bottom clipping, mobile flow, table text wrapping, admin controls/audit log visibility 확인 |
-| Deploy verification | Git push 후 Vercel production deployment `dpl_FeF8xphSrHCRrpht5S8Ef5djqSeJ` Ready, `https://enterprise-policy-rag.vercel.app` HTTP 200 |
+| Deploy verification | Git push 후 Vercel production deployment Ready와 `https://enterprise-policy-rag.vercel.app` HTTP 200 확인 |
 
 ## Phase 2 완료 산출물
 

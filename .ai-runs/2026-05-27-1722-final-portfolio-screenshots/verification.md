@@ -109,7 +109,7 @@ git commit -m "Docs: 포트폴리오 스크린샷 최종화"
 git push origin main
 ```
 
-Result: pushed `0264faf` to `origin/main`.
+Result: pushed screenshot commit `0264faf` to `origin/main`; deployment verification was then recorded in follow-up commit `205d7b8`.
 
 ```bash
 pnpm dlx vercel ls enterprise-policy-rag --scope cyson21s-projects
@@ -120,8 +120,7 @@ curl -s -L https://enterprise-policy-rag.vercel.app | rg -n "Enterprise Policy R
 
 Result:
 
-- Latest deployment: `dpl_FeF8xphSrHCRrpht5S8Ef5djqSeJ`
-- Deployment status: `Ready`
+- Vercel reported the newest production deployment as `Ready`.
 - Production alias: `https://enterprise-policy-rag.vercel.app`
 - Production HTTP status: `HTTP/2 200`
 - Served static asset hash includes `assets/index-DzMGZ5wQ.css`
