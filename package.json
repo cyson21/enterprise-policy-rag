@@ -10,6 +10,7 @@
     "web:build:static": "node scripts/run-web-task.mjs build:static",
     "web:preview:static": "node scripts/run-web-task.mjs preview:static",
     "web:smoke": "node scripts/run-web-task.mjs smoke",
-    "web:smoke:static": "node scripts/smoke-static-demo.mjs"
+    "web:smoke:static": "node scripts/smoke-static-demo.mjs",
+    "portfolio:screenshots": "node scripts/capture-portfolio-screenshots.mjs"
   }
 }

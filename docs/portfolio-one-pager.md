@@ -54,11 +54,13 @@ https://github.com/cyson21/enterprise-policy-rag
 
 ## Demo Screenshots
 
-![Operations desktop](assets/operations-demo-ko-v7-desktop.jpg)
+![Operations desktop](assets/operations-demo-ko-v13-desktop.jpg)
 
-![Operations mobile webview](assets/operations-demo-ko-v12-mobile-overview.jpg)
+![Operations mobile webview](assets/operations-demo-ko-v13-mobile-overview.jpg)
 
-![Operations mobile full page](assets/operations-demo-ko-v12-mobile-full-page.jpg)
+![Operations mobile full page](assets/operations-demo-ko-v13-mobile-full-page.jpg)
+
+![Knowledge admin desktop](assets/knowledge-admin-demo-ko-v1-desktop.jpg)
 
 ## Current Boundaries
 
@@ -72,4 +74,4 @@ https://github.com/cyson21/enterprise-policy-rag
 
 ## Next Valuable Slice
 
-Refresh portfolio screenshots after the final feature set, then add an optional production hardening checklist.
+Add an optional production hardening checklist.
