@@ -304,7 +304,7 @@
 |---|---|
 | Operations polish | Trend, Recent Queries, Query Detail을 2-column operations console로 재배치 |
 | Responsive guard | Mobile에서 table은 내부 가로 스크롤로 제한하고 body overflow 제거 |
-| Screenshot assets | `docs/assets/operations-demo-ko-v7-desktop.jpg`, `docs/assets/operations-demo-ko-v12-mobile-overview.jpg`, `docs/assets/operations-demo-ko-v12-mobile-full-page.jpg` |
+| Historical screenshot assets | Phase 5F final screenshot bundle로 대체 |
 | Korean UI | 화면 라벨, persona, department, document title, provider 표시를 한국어로 전환 |
 | Screenshot refresh | 합성 보드 대신 개별 산출물 기준으로 desktop 1440x1650, mobile webview 500x1500, mobile full page 500x3600 재촬영 |
 | Browser QA | Desktop/mobile render, console error/warn 0건, framework overlay 없음 |
@@ -422,6 +422,17 @@
 | Safe output | provider, model, retrieved count, citation count, latency, answer length만 출력 |
 | Verification | 실제 OpenAI live smoke가 `provider=openai`, `model=gpt-4.1-mini`, `retrieved=2`, `citations=2`로 통과 |
 
+## Phase 5F 진행 스냅샷
+
+| 항목 | 결과 |
+|---|---|
+| Capture script | `scripts/capture-portfolio-screenshots.mjs`가 static build를 임시 서버로 열고 headless Chrome CDP로 JPEG 캡처 |
+| Operations desktop | `docs/assets/operations-demo-ko-v13-desktop.jpg` 1440x1650 |
+| Operations mobile webview | `docs/assets/operations-demo-ko-v13-mobile-overview.jpg` 500x1400 |
+| Operations mobile full page | `docs/assets/operations-demo-ko-v13-mobile-full-page.jpg` 500x2783, actual `scrollHeight=2783` 기준 |
+| Knowledge admin desktop | `docs/assets/knowledge-admin-demo-ko-v1-desktop.jpg` 1440x1350 |
+| Visual QA | `view_image`로 right/bottom clipping, mobile flow, table text wrapping, admin controls/audit log visibility 확인 |
+
 ## Phase 2 완료 산출물
 
 - LLM provider interface
@@ -441,10 +452,10 @@
 - 운영 지표 조회 API
 - PostgreSQL runtime repository selection
 - eval run persistence
+- final portfolio screenshot refresh
 
 ## 남은 확장 후보
 
-- Portfolio screenshot refresh after final feature set
 - Optional production hardening checklist
 
 ## 참고 벤치마크

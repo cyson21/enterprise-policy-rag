@@ -48,10 +48,9 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 - API/data model: `docs/api-data-model.md`
 - Demo runbook: `docs/runbooks/local-demo.md`
 - Static deploy runbook: `docs/runbooks/static-demo-deploy.md`
-- Screenshots: `docs/assets/operations-demo-ko-v7-desktop.jpg`, `docs/assets/operations-demo-ko-v12-mobile-overview.jpg`, `docs/assets/operations-demo-ko-v12-mobile-full-page.jpg`
+- Screenshots: `docs/assets/operations-demo-ko-v13-desktop.jpg`, `docs/assets/operations-demo-ko-v13-mobile-overview.jpg`, `docs/assets/operations-demo-ko-v13-mobile-full-page.jpg`, `docs/assets/knowledge-admin-demo-ko-v1-desktop.jpg`
 - Verification records: `.ai-runs/*/verification.md`
 
 ## Next Steps
 
-- refresh portfolio screenshots after the final feature set
 - optional production hardening checklist

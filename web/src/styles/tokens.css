@@ -340,6 +340,13 @@ textarea {
   overflow-x: auto;
 }
 
+.data-table .table-row small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .data-table .table-row {
   grid-template-columns: minmax(0, 1fr) 120px 120px 170px 72px;
 }
@@ -821,6 +828,18 @@ textarea {
 
   .sidebar {
     min-height: auto;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .nav-item {
+    min-height: 42px;
+    padding: 9px 10px;
   }
 
   .top-actions {

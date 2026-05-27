@@ -1,6 +1,6 @@
 # Enterprise Policy RAG TODO
 
-마지막 갱신: 2026-05-26
+마지막 갱신: 2026-05-27
 상태 표기: `[ ]` 미시작, `[~]` 진행 중, `[x]` 완료, `[!]` 차단
 
 ## 운영 원칙
@@ -165,3 +165,7 @@
   - 결과: `AUTH_CONTEXT_PROVIDER=oidc_jwt` provider가 Bearer JWT의 issuer/audience/signature/expiry를 검증하고 session claim을 매핑한다.
 - [x] Controlled live OpenAI smoke
   - 결과: `RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py`가 ignored `.env.local`의 키로 OpenAI provider/citation flow를 검증하고, 기본 검증은 fake provider로 유지한다.
+- [x] Final portfolio screenshot refresh
+  - 결과: static fake-provider build 기준 Operations desktop/mobile/full-page와 Knowledge Library admin desktop screenshot을 재촬영하고 문서 참조를 최신화했다.
+- [ ] Optional production hardening checklist
+  - 후보: rate limit, request size limit, structured logging, deployment env matrix, secret rotation runbook.

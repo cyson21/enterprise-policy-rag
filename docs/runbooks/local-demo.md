@@ -66,9 +66,17 @@ Screens to verify:
 
 Screenshot assets:
 
-- `docs/assets/operations-demo-ko-v7-desktop.jpg`
-- `docs/assets/operations-demo-ko-v12-mobile-overview.jpg`
-- `docs/assets/operations-demo-ko-v12-mobile-full-page.jpg`
+- `docs/assets/operations-demo-ko-v13-desktop.jpg`
+- `docs/assets/operations-demo-ko-v13-mobile-overview.jpg`
+- `docs/assets/operations-demo-ko-v13-mobile-full-page.jpg`
+- `docs/assets/knowledge-admin-demo-ko-v1-desktop.jpg`
+
+Portfolio screenshot capture:
+
+```bash
+pnpm web:build:static
+pnpm portfolio:screenshots
+```
 
 ## Verification
 
