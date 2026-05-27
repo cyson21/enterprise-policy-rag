@@ -45,6 +45,7 @@
 21. `.ai-runs/2026-05-26-1005-github-remote-and-vercel-git-integration/`
 22. `.ai-runs/2026-05-26-1147-admin-ui-controls/`
 23. `.ai-runs/2026-05-26-1551-oidc-jwt-auth/`
+24. `.ai-runs/2026-05-27-0929-openai-live-smoke/`
 
 ## 첫 구현 단위 추천
 
@@ -103,12 +104,14 @@ Production auth/SSO boundary with demo and trusted header providers
 Admin document workflow API with indexing status and audit logs
 Knowledge Library admin UI controls with update/delete/audit log flow
 OIDC JWT auth adapter with issuer/audience/signature validation
+Controlled live OpenAI smoke script with safe opt-in metadata output
 ```
 
 다음 구현 에이전트는 전체 제품 설계에 맞춰 아래 범위를 우선한다.
 
 ```text
-Controlled live OpenAI smoke
+Portfolio screenshot refresh after final feature set
+Optional production hardening checklist
 ```
 
 PostgreSQL repository integration smoke는 Colima low-resource Docker daemon에서 완료되었다. 재검증이 필요하면 아래 명령을 사용한다.
@@ -173,6 +176,7 @@ verification.md
 - 외부 LLM API 호출은 provider 인터페이스 뒤에 둔다.
 - `LLM_PROVIDER` 기본값은 `fake`로 유지한다.
 - `LLM_PROVIDER=openai`는 `OPENAI_API_KEY`가 있을 때만 OpenAI Responses API transport를 사용한다.
+- live OpenAI smoke는 `RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py`로만 실행한다.
 - Portfolio screenshots are in `docs/assets/operations-demo-*.jpg`.
 - Portfolio interview/demo guide is `docs/portfolio-interview-guide.md`.
 - Static demo deploy runbook is `docs/runbooks/static-demo-deploy.md`.

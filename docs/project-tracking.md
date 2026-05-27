@@ -10,7 +10,7 @@
 | 도메인 | 엔터프라이즈 사내 정책/업무 문서 RAG |
 | 목적 | AI Native Back-end Engineer 포지션 대응용 사이드 프로젝트 |
 | 핵심 아키텍처 | React UI + FastAPI + PostgreSQL/pgvector + provider abstraction + eval/ops |
-| 현재 Phase | Phase 5D OIDC JWT auth adapter implemented |
+| 현재 Phase | Phase 5E controlled live OpenAI smoke implemented |
 | 실제 LLM API | 후순위. fake provider first |
 | 온프레미스 | 1차 범위 제외 |
 
@@ -53,6 +53,7 @@
 - Operations trend는 query log를 기준으로 `GET /metrics/trend`에서 retrieval/answer/zero-result/latency daily trend를 제공한다.
 - Query drilldown은 `GET /queries/{query_id}`에서 query log, retrieval result, answer, citation snapshot을 함께 제공한다.
 - OpenAI adapter는 `LLM_PROVIDER=openai`로 명시 선택하고 `OPENAI_API_KEY`가 있을 때만 live Responses API transport를 사용한다. 기본 테스트와 로컬 실행은 fake provider를 유지한다.
+- Controlled live OpenAI smoke는 `RUN_OPENAI_LIVE_SMOKE=1`일 때만 ignored `.env.local` 키를 사용해 실행한다.
 - Portfolio screenshot은 Operations 화면을 기준으로 desktop/mobile 상태를 캡처한다.
 - Public portfolio demo는 static read-only fake-provider build로 배포한다. 현재 production URL은 `https://enterprise-policy-rag.vercel.app`이다.
 - GitHub public repository는 `https://github.com/cyson21/enterprise-policy-rag`이다.
@@ -410,6 +411,17 @@
 | Real IdP path | `OIDC_JWKS_URL`, `OIDC_JWT_ALGORITHMS`, claim-name env override 제공 |
 | Permission boundary | `/auth/retrieve`, `/auth/answer`, admin workflow가 OIDC session context를 사용 |
 
+## Phase 5E 진행 스냅샷
+
+| 항목 | 결과 |
+|---|---|
+| Live smoke script | `scripts/openai_live_smoke.py` 추가 |
+| Opt-in guard | `RUN_OPENAI_LIVE_SMOKE=1` 없이는 skip 처리 |
+| Secret handling | `OPENAI_API_KEY`는 ignored `.env.local`에서 로드하고 출력하지 않음 |
+| Runtime path | in-memory repository와 seeded demo data로 Docker 없이 OpenAI answer flow 검증 |
+| Safe output | provider, model, retrieved count, citation count, latency, answer length만 출력 |
+| Verification | 실제 OpenAI live smoke가 `provider=openai`, `model=gpt-4.1-mini`, `retrieved=2`, `citations=2`로 통과 |
+
 ## Phase 2 완료 산출물
 
 - LLM provider interface
@@ -432,7 +444,8 @@
 
 ## 남은 확장 후보
 
-- Controlled live OpenAI smoke
+- Portfolio screenshot refresh after final feature set
+- Optional production hardening checklist
 
 ## 참고 벤치마크
 

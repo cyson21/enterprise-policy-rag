@@ -153,7 +153,7 @@
 - [x] Vercel Git integration 연결
   - 결과: GitHub App 접근 승인 후 `cyson21/enterprise-policy-rag`가 Vercel project에 연결되었고, deploy hook 조회가 정상 동작한다.
 
-## Phase 5. 남은 확장 후보
+## Phase 5. 확장 후보
 
 - [x] Production auth/SSO boundary 설계와 최소 구현
   - 결과: `GET /auth/session`, `POST /auth/retrieve`, `POST /auth/answer`, demo/trusted header auth provider, UI auth status를 추가했다.
@@ -163,5 +163,5 @@
   - 결과: Knowledge Library에 admin persona 전용 document update/delete controls와 audit log view를 추가했고, non-admin persona는 읽기 전용 안내를 표시한다.
 - [x] Real IdP/OIDC adapter
   - 결과: `AUTH_CONTEXT_PROVIDER=oidc_jwt` provider가 Bearer JWT의 issuer/audience/signature/expiry를 검증하고 session claim을 매핑한다.
-- [ ] Controlled live OpenAI smoke
-  - 목표: 기본 fake-provider 경로를 유지하면서 API key가 있을 때만 제한된 live OpenAI smoke를 실행한다.
+- [x] Controlled live OpenAI smoke
+  - 결과: `RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py`가 ignored `.env.local`의 키로 OpenAI provider/citation flow를 검증하고, 기본 검증은 fake provider로 유지한다.

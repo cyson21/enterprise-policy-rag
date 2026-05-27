@@ -63,7 +63,7 @@ https://github.com/cyson21/enterprise-policy-rag
 ## Current Boundaries
 
 - No OpenAI API call is required.
-- The OpenAI live transport is opt-in and not part of default local verification.
+- The OpenAI live transport and live smoke are opt-in and not part of default local verification.
 - The static public demo mode does not call `/api`; it uses read-only fake-provider fixtures.
 - On-premises deployment is outside the first scope.
 - PostgreSQL document and query log repositories are verified with low-resource Colima; the default app path remains in-memory unless `DATABASE_URL` is set.
@@ -72,4 +72,4 @@ https://github.com/cyson21/enterprise-policy-rag
 
 ## Next Valuable Slice
 
-Add controlled live OpenAI smoke without changing the fake-provider-first local path.
+Refresh portfolio screenshots after the final feature set, then add an optional production hardening checklist.

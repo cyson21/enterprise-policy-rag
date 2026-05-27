@@ -45,6 +45,14 @@ Normal local tests run without `DATABASE_URL` so they stay API-key-free and Dock
 | `LLM_PROVIDER=fake` | `FakeLLMProvider` | API-key-free |
 | `LLM_PROVIDER=openai` | `OpenAILLMProvider` + `OpenAIHTTPTransport` | requires `OPENAI_API_KEY`; live HTTP path is opt-in and not part of default verification |
 
+Controlled live smoke is separate from default verification:
+
+```bash
+RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py
+```
+
+The script loads `OPENAI_API_KEY` from ignored `.env.local`, uses in-memory seeded demo data, and prints safe metadata only.
+
 ## Auth Context Selection
 
 | Environment | Auth provider | Notes |

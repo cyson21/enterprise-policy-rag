@@ -39,7 +39,7 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 
 - 공개 데모는 demo auth context와 persona selector를 사용한다. production 전환 경계는 `AuthContextProvider`와 session-bound endpoint로 분리했고, OIDC JWT provider는 issuer/audience/signature/expiry 검증과 claim mapping을 제공한다.
 - 대규모 문서 파서나 PDF ingestion은 제외했다. 첫 범위는 Markdown/TXT chunking, permission retrieval, citation, operations에 집중한다.
-- OpenAI live transport는 구현되어 있지만 기본 테스트에서는 호출하지 않는다. 비용과 secret 의존성을 CI에 넣지 않기 위해 mock HTTP opener로 검증한다.
+- OpenAI live transport와 controlled live smoke는 구현되어 있지만 기본 테스트에서는 호출하지 않는다. 비용과 secret 의존성을 CI에 넣지 않기 위해 mock HTTP opener와 opt-in smoke로 분리했다.
 - 온프레미스 배포와 Kubernetes 운영 자동화는 1차 범위에서 제외했다.
 
 ## Evidence
@@ -53,4 +53,5 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 
 ## Next Steps
 
-- optional live OpenAI smoke with a controlled API key
+- refresh portfolio screenshots after the final feature set
+- optional production hardening checklist

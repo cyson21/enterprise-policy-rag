@@ -85,7 +85,7 @@ node scripts/run-web-task.mjs build
 Expected current result:
 
 ```text
-73 passed, 2 skipped
+76 passed, 2 skipped
 ```
 
 For the backend-free public demo build, see `docs/runbooks/static-demo-deploy.md`.
@@ -136,3 +136,15 @@ python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Then call `POST /answer` with the same payload from the Backend section. The request still goes through the existing retrieval and citation flow; only the final `LLMProvider.complete()` call changes.
+
+For a bounded live smoke without starting the API server, store `OPENAI_API_KEY` in ignored `.env.local` and run:
+
+```bash
+RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py
+```
+
+Expected safe output shape:
+
+```text
+OpenAI live smoke passed: provider=openai model=gpt-4.1-mini retrieved=2 citations=2 latency_ms=<n> answer_chars=<n>
+```
