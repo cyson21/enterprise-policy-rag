@@ -47,6 +47,7 @@
 23. `.ai-runs/2026-05-26-1551-oidc-jwt-auth/`
 24. `.ai-runs/2026-05-27-0929-openai-live-smoke/`
 25. `.ai-runs/2026-05-27-1722-final-portfolio-screenshots/`
+26. `.ai-runs/2026-05-28-0853-production-hardening-closeout/`
 
 ## 첫 구현 단위 추천
 
@@ -107,12 +108,14 @@ Knowledge Library admin UI controls with update/delete/audit log flow
 OIDC JWT auth adapter with issuer/audience/signature validation
 Controlled live OpenAI smoke script with safe opt-in metadata output
 Final portfolio screenshots for Operations and Knowledge admin
+Production hardening checklist and Project 02 portfolio closeout
 ```
 
-다음 구현 에이전트는 전체 제품 설계에 맞춰 아래 범위를 우선한다.
+다음 구현 에이전트는 아래 상태를 기준으로 시작한다.
 
 ```text
-Optional production hardening checklist
+Project 02 portfolio scope is complete.
+Real production SaaS rollout should start as a separate phase from docs/runbooks/production-hardening-checklist.md.
 ```
 
 PostgreSQL repository integration smoke는 Colima low-resource Docker daemon에서 완료되었다. 재검증이 필요하면 아래 명령을 사용한다.
@@ -181,6 +184,7 @@ verification.md
 - Portfolio screenshots are in `docs/assets/operations-demo-ko-v13-*.jpg` and `docs/assets/knowledge-admin-demo-ko-v1-desktop.jpg`.
 - Portfolio interview/demo guide is `docs/portfolio-interview-guide.md`.
 - Static demo deploy runbook is `docs/runbooks/static-demo-deploy.md`.
+- Production hardening checklist is `docs/runbooks/production-hardening-checklist.md`.
 - Public demo URL: `https://enterprise-policy-rag.vercel.app`.
 - GitHub repo URL: `https://github.com/cyson21/enterprise-policy-rag`.
 - 공개 README에는 특정 채용공고나 개인 지원 전략을 직접 넣지 않는다.

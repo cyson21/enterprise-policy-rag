@@ -48,9 +48,10 @@ Repository: `https://github.com/cyson21/enterprise-policy-rag`
 - API/data model: `docs/api-data-model.md`
 - Demo runbook: `docs/runbooks/local-demo.md`
 - Static deploy runbook: `docs/runbooks/static-demo-deploy.md`
+- Production hardening checklist: `docs/runbooks/production-hardening-checklist.md`
 - Screenshots: `docs/assets/operations-demo-ko-v13-desktop.jpg`, `docs/assets/operations-demo-ko-v13-mobile-overview.jpg`, `docs/assets/operations-demo-ko-v13-mobile-full-page.jpg`, `docs/assets/knowledge-admin-demo-ko-v1-desktop.jpg`
 - Verification records: `.ai-runs/*/verification.md`
 
 ## Next Steps
 
-- optional production hardening checklist
+- Project 02 portfolio scope is closed; production SaaS rollout would start from the hardening checklist.

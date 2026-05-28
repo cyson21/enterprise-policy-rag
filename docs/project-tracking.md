@@ -340,7 +340,7 @@
 | Vercel auth | Device auth로 `cyson21s-projects` team에 로그인 |
 | Project link | `cyson21s-projects/enterprise-policy-rag` |
 | Production URL | `https://enterprise-policy-rag.vercel.app` |
-| Deployment ID | `dpl_8rEfeFSZUHqSZaBzJdgJ45vUxtrw` |
+| Deployment ID | Historical deployment ids are not treated as current state; check latest with Vercel CLI |
 | Deployment state | Vercel API 기준 `READY` |
 | Browser verification | Headless Chrome으로 `/?route=operations` 렌더링, `공개 데모`, `운영 지표`, `쿼리 상세`, `평가 리포트` 확인 |
 | 남은 범위 | production auth/SSO, admin workflow |
@@ -434,6 +434,15 @@
 | Visual QA | `view_image`로 right/bottom clipping, mobile flow, table text wrapping, admin controls/audit log visibility 확인 |
 | Deploy verification | Git push 후 Vercel production deployment Ready와 `https://enterprise-policy-rag.vercel.app` HTTP 200 확인 |
 
+## Phase 5G 진행 스냅샷
+
+| 항목 | 결과 |
+|---|---|
+| Production hardening checklist | `docs/runbooks/production-hardening-checklist.md` 추가 |
+| Scope separation | portfolio closeout 기준과 real production SaaS 전 필수 보강 항목을 분리 |
+| Hardening areas | secret rotation, env matrix, request limit, rate limit, CORS, security headers, auth session, audit retention, migration, backup, observability, cost controls, eval gate, rollback, load test |
+| Project closeout | Project 02 portfolio scope 내 남은 항목 없음 |
+
 ## Phase 2 완료 산출물
 
 - LLM provider interface
@@ -454,10 +463,12 @@
 - PostgreSQL runtime repository selection
 - eval run persistence
 - final portfolio screenshot refresh
+- production hardening checklist
 
 ## 남은 확장 후보
 
-- Optional production hardening checklist
+- Project 02 portfolio scope 내 남은 항목 없음
+- 실제 production SaaS 전환은 `docs/runbooks/production-hardening-checklist.md`에서 별도 phase로 시작
 
 ## 참고 벤치마크
 

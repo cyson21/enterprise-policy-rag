@@ -20,10 +20,11 @@ GitHub repository:
 https://github.com/cyson21/enterprise-policy-rag
 ```
 
-Deployment:
+Deployment status:
 
 ```text
-dpl_8rEfeFSZUHqSZaBzJdgJ45vUxtrw
+Latest production deployment is managed by Vercel Git integration.
+Use `pnpm dlx vercel ls enterprise-policy-rag --scope cyson21s-projects` for the current deployment id.
 ```
 
 ## Local Build
@@ -98,12 +99,11 @@ Import the Git repository, keep the repository root as the project root, and let
 
 ## Current Deployment Notes
 
-The first production deployment was created through the Vercel CLI after device auth.
+The first production deployment was created through the Vercel CLI after device auth. Current deployments are created by Vercel Git integration after `main` pushes.
 
 ```text
 Project: cyson21s-projects/enterprise-policy-rag
 Production alias: https://enterprise-policy-rag.vercel.app
-Inspector: https://vercel.com/cyson21s-projects/enterprise-policy-rag/8rEfeFSZUHqSZaBzJdgJ45vUxtrw
 ```
 
 The local `.vercel` directory is intentionally ignored by Git.
@@ -135,3 +135,5 @@ status: ok
 projectName: enterprise-policy-rag
 hooks: []
 ```
+
+Before turning this static demo into a real backend deployment, use `docs/runbooks/production-hardening-checklist.md`.

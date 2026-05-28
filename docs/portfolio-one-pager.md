@@ -72,6 +72,6 @@ https://github.com/cyson21/enterprise-policy-rag
 - `DATABASE_URL` switches the runtime to PostgreSQL-backed document, query log, and eval repositories.
 - OAuth redirect/session-cookie flow is not included. The auth/SSO boundary, OIDC JWT adapter, admin document workflow API, and Knowledge Library admin controls are implemented.
 
-## Next Valuable Slice
+## Closeout
 
-Add an optional production hardening checklist.
+Project 02 portfolio scope is complete. A real production SaaS rollout would start from `docs/runbooks/production-hardening-checklist.md`.
