@@ -66,3 +66,20 @@ Result: no matches in source docs.
 - `docs/project-tracking.md` states that there is no remaining Project 02 portfolio-scope work.
 - `docs/next-agent-bootstrap.md` points any future production SaaS rollout to `docs/runbooks/production-hardening-checklist.md`.
 - Default verification remains API-key-free and Docker-free.
+
+## Git and Deployment
+
+```bash
+git commit -m "Docs: 프로덕션 보강 체크리스트 추가"
+git push origin main
+pnpm dlx vercel ls enterprise-policy-rag --scope cyson21s-projects
+pnpm dlx vercel inspect <latest-production-deployment-url> --scope cyson21s-projects
+curl -I -L https://enterprise-policy-rag.vercel.app
+```
+
+Result:
+
+- Commit pushed to `origin/main`.
+- Vercel Git integration created a production deployment and reported `Ready`.
+- Production alias `https://enterprise-policy-rag.vercel.app` returned `HTTP/2 200`.
+- The served static HTML still includes the `Enterprise Policy RAG` title and the expected built asset hash.
