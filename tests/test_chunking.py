@@ -1,3 +1,4 @@
+# 텍스트 분할 테스트: 문단 경계 보존, 순서 유지, 빈 입력 예외 처리를 검증한다.
 from app.chunking import chunk_text
 
 

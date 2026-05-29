@@ -1,7 +1,8 @@
+"""문서 본문을 검색 품질에 맞는 고정 길이 텍스트 조각으로 나누는 모듈."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-
 
 @dataclass(frozen=True)
 class TextChunk:
@@ -46,6 +47,7 @@ def chunk_text(content: str, max_chars: int = 700) -> list[TextChunk]:
 
 
 def _split_long_paragraph(paragraph: str, max_chars: int) -> list[str]:
+    # 긴 문단은 단어 단위로 추가 분해해 청크 길이 상한을 넘지 않도록 한다.
     words = paragraph.split()
     chunks: list[str] = []
     current = ""

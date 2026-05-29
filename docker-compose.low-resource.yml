@@ -1,5 +1,7 @@
+# 리소스 제한을 둔 동일 postgres 서비스 정의로 로컬 메모리 환경 테스트를 지원한다.
 services:
   postgres:
+    # 리소스 제한을 낮춰 제한된 노트북 환경에서 CI 전용 재현을 돕는다.
     cpus: 1.0
     mem_limit: 512m
     shm_size: 64m

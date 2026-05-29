@@ -1,3 +1,4 @@
+# 검색 권한 테스트: 워크스페이스/공개/부서/소유자 필터 규칙이 검색 결과에 반영되는지 확인한다.
 from app.chunking import chunk_text
 from app.models import DocumentCreate, RetrievalQuery, Visibility
 from app.providers import FakeEmbeddingProvider

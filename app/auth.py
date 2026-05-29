@@ -37,6 +37,7 @@ class AuthContextProvider(Protocol):
 
 
 class DemoAuthContextProvider:
+    # 데모 환경에서는 고정된 페르소나를 반환해 권한/부서 경로를 재현 가능한 상태로 고정한다.
     def current_session(self, _headers: Mapping[str, str]) -> AuthSession:
         persona = DEMO_PERSONAS[0]
         return AuthSession(
@@ -51,6 +52,7 @@ class DemoAuthContextProvider:
 
 
 class TrustedHeaderAuthContextProvider:
+    # 외부 Identity가 헤더로 identity를 전달할 때, 필수 헤더 존재성과 형식을 점검한 뒤 사용자 컨텍스트를 구성한다.
     def current_session(self, headers: Mapping[str, str]) -> AuthSession:
         workspace_id = _header_value(headers, "x-enterprise-workspace-id")
         user_id = _header_value(headers, "x-enterprise-user-id")
@@ -77,6 +79,7 @@ class TrustedHeaderAuthContextProvider:
 
 
 class OIDCJWTAuthContextProvider:
+    # OIDC 토큰 기반으로 workspace/user/부서/역할을 추출해 런타임 인증 컨텍스트를 구성한다.
     def __init__(
         self,
         *,
@@ -111,6 +114,7 @@ class OIDCJWTAuthContextProvider:
 
     @classmethod
     def from_env(cls) -> "OIDCJWTAuthContextProvider":
+        # 배포 환경 변수에서 OIDC 설정을 모아서 프로바이더 인스턴스를 만들고, 누락값은 생성 단계에서 즉시 실패시킨다.
         algorithms = _csv_env("OIDC_JWT_ALGORITHMS")
         return cls(
             issuer=os.getenv("OIDC_ISSUER", "").strip(),
@@ -148,6 +152,7 @@ class OIDCJWTAuthContextProvider:
         )
 
     def _decode(self, token: str) -> dict[str, Any]:
+        # 배포 타입에서만 실제 JWT 디코딩이 필요하므로 Provider 경계에서 import와 예외를 로컬화한다.
         try:
             import jwt
             from jwt import PyJWKClient
@@ -173,6 +178,7 @@ class OIDCJWTAuthContextProvider:
 
 
 def build_auth_context_provider_from_env() -> AuthContextProvider:
+    # 운영 모드에 따라 demo/trusted_headers/oidc 중 하나의 인증 경로를 선택해 시스템 경계의 주입점을 고정한다.
     mode = os.getenv("AUTH_CONTEXT_PROVIDER", "demo").strip().lower()
     if mode in {"", "demo"}:
         return DemoAuthContextProvider()
@@ -184,6 +190,7 @@ def build_auth_context_provider_from_env() -> AuthContextProvider:
 
 
 def _header_value(headers: Mapping[str, str], key: str) -> str:
+    # 헤더 키 대소문자 불일치를 흡수해 인증 규칙이 배포 환경에 따라 깨지지 않게 처리한다.
     value = headers.get(key)
     if value is not None:
         return value
@@ -197,6 +204,7 @@ def _header_value(headers: Mapping[str, str], key: str) -> str:
 
 
 def _normalize_departments(value: list[str]) -> list[str]:
+    # 부서 목록을 공백 제거/중복 제거로 정리해 접근 정책에서 동일한 정렬 순서를 보장한다.
     return sorted({item.strip() for item in value if item.strip()})
 
 

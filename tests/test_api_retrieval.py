@@ -1,3 +1,4 @@
+# 검색/문서 조회 API 테스트: 업로드 후 조회 권한 필터링과 비지원 형식 처리를 검증한다.
 import pytest
 from httpx import ASGITransport, AsyncClient
 

@@ -1,3 +1,4 @@
+# 런타임 DI 테스트: DATABASE_URL 존재 유무에 따른 저장소 교체를 검증한다.
 from app.query_logs import InMemoryQueryLogRepository
 from app.repository import InMemoryPolicyRepository
 from app.eval_runs import InMemoryEvalRunRepository

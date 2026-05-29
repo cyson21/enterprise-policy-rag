@@ -1,5 +1,8 @@
+# PostgreSQL 테스트/운영을 위한 최소 실행 규격.
+# 앱이 의존하는 DB를 공유 볼륨과 healthcheck와 함께 띄워 통합 테스트 전환 조건을 충족한다.
 services:
   postgres:
+    # 벡터 확장 환경에 맞는 pgvector 이미지 사용.
     image: pgvector/pgvector:pg16
     container_name: enterprise-policy-rag-postgres
     environment:
@@ -9,8 +12,10 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      # 초기 스키마 자동 등록용 디렉터리와 로컬 데이터 영속성 분리.
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
       - postgres-data:/var/lib/postgresql/data
+    # 서비스 준비 완료를 기다리는 자동 검증 규칙.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rag_app -d enterprise_policy_rag"]
       interval: 5s

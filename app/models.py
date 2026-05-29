@@ -1,3 +1,5 @@
+"""도메인 모델 모듈: 문서/검색/로그/평가 API가 주고받는 스키마를 경계 기반으로 통합 관리한다."""
+
 from __future__ import annotations
 
 from enum import Enum
@@ -5,11 +7,11 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-
 SUPPORTED_CONTENT_TYPES = {"text/plain", "text/markdown", "text/x-markdown"}
 
 
 class Visibility(str, Enum):
+    # 공개 범위 규칙을 enum으로 고정해 권한 판정 지점에서 문자열 분기 오동작을 방지한다.
     PUBLIC = "public"
     DEPARTMENT = "department"
     PRIVATE = "private"
@@ -35,6 +37,7 @@ class DocumentCreate(BaseModel):
     @field_validator("content_type")
     @classmethod
     def validate_content_type(cls, value: str) -> str:
+        # 허용 포맷만 통과시켜 저장 계층의 인덱싱/검색 포맷 가정과 일치성을 유지한다.
         if value not in SUPPORTED_CONTENT_TYPES:
             supported = ", ".join(sorted(SUPPORTED_CONTENT_TYPES))
             raise ValueError(f"unsupported content_type: {value}; supported: {supported}")
@@ -43,6 +46,7 @@ class DocumentCreate(BaseModel):
     @field_validator("department_ids")
     @classmethod
     def normalize_departments(cls, value: list[str]) -> list[str]:
+        # 공백/중복 department_id를 정리해 정책 조회 및 접근 제어의 비교 집합을 단순화한다.
         return sorted({item.strip() for item in value if item.strip()})
 
 
@@ -58,6 +62,7 @@ class DocumentUpdate(BaseModel):
     @field_validator("content_type")
     @classmethod
     def validate_content_type(cls, value: Optional[str]) -> Optional[str]:
+        # 부분 업데이트 시에도 타입 변경이 들어오면 동일 정책 제약을 동일하게 적용한다.
         if value is None:
             return value
         if value not in SUPPORTED_CONTENT_TYPES:
@@ -68,6 +73,7 @@ class DocumentUpdate(BaseModel):
     @field_validator("department_ids")
     @classmethod
     def normalize_departments(cls, value: Optional[list[str]]) -> Optional[list[str]]:
+        # 업데이트에서 null/빈값을 구분하고, 실제 값은 공백 제거 및 dedupe로 안정화한다.
         if value is None:
             return value
         return sorted({item.strip() for item in value if item.strip()})
@@ -175,6 +181,7 @@ class RetrievalQuery(BaseModel):
     @field_validator("department_ids")
     @classmethod
     def normalize_departments(cls, value: list[str]) -> list[str]:
+        # 조회권한 계산을 위해 department_id 집합을 정렬해 비교 결과 재현성을 높인다.
         return sorted({item.strip() for item in value if item.strip()})
 
 

@@ -1,3 +1,4 @@
+# 평가 실행 API 테스트: 실전 샘플을 평가해 지표 집계 및 이력 조회 흐름을 보장한다.
 import pytest
 from httpx import ASGITransport, AsyncClient
 

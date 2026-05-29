@@ -1,3 +1,4 @@
+# PostgreSQL 문서 저장소 테스트: SQL 수행/매핑 계층이 의도한 스키마 동작을 따르는지 확인한다.
 import pytest
 
 from app.chunking import TextChunk

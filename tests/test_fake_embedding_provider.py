@@ -1,3 +1,4 @@
+# 임베딩 제공자 테스트: 동일 입력에 대한 결정성, 유사도 비교의 상대적 동작을 확인한다.
 from app.providers import FakeEmbeddingProvider
 
 

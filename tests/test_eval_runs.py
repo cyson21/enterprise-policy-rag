@@ -1,3 +1,4 @@
+# 평가 실행 저장소 테스트: 인메모리/PostgreSQL 저장 동작과 케이스 매핑을 점검한다.
 from datetime import datetime, timezone
 
 import pytest

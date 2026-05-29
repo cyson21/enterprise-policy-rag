@@ -8,6 +8,7 @@ type PersonaSelectorProps = {
 };
 
 export function PersonaSelector({ personas, activePersonaId, onChange }: PersonaSelectorProps) {
+  // 페르소나 목록에서 id 미스매치가 나면 첫 항목으로 안전하게 복구한다.
   const activePersona = personas.find((persona) => persona.id === activePersonaId) ?? personas[0];
 
   return (

@@ -9,6 +9,7 @@ from app.retrieval import RetrievalService
 
 
 class AnswerService:
+    # 검색과 생성형 응답의 결합 지점으로, retrieval 결과를 answer 스냅샷으로 고정하고 토큰/지연 지표를 계산한다.
     def __init__(
         self,
         repository: PolicyRepository,
@@ -21,6 +22,7 @@ class AnswerService:
 
     def answer(self, query: AnswerQuery) -> AnswerResponse:
         started = perf_counter()
+        # 답변 계산 전에 retrieval 단계만 먼저 수행해 근거가 없는 상태를 명확히 감지한다.
         retrieval = RetrievalService(
             repository=self.repository,
             embedding_provider=self.embedding_provider,
@@ -49,6 +51,7 @@ class AnswerService:
         ]
 
         if not citations:
+            # 근거가 없으면 provider 호출 없이 refusal_reason으로 일관된 실패 응답을 반환한다.
             return AnswerResponse(
                 query=query.query,
                 answer=None,
@@ -62,6 +65,7 @@ class AnswerService:
             )
 
         prompt = _build_prompt(query.query, citations)
+        # answer 생성은 고정된 prompt 포맷을 사용해 근거-문항 연결을 유지한다.
         answer_text = self.llm_provider.complete(prompt)
         return AnswerResponse(
             query=query.query,
@@ -77,6 +81,7 @@ class AnswerService:
 
 
 def _build_prompt(query: str, citations: list[AnswerCitation]) -> str:
+    # 증거 목록을 prompt의 Evidence 블록으로 전달해 LLM이 입력 사실 범위를 벗어나지 않게 유도한다.
     evidence = "\n".join(f"- {citation.quote}" for citation in citations)
     return f"Question: {query}\nEvidence:\n{evidence}\nAnswer with cited evidence only."
 

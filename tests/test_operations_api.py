@@ -1,3 +1,4 @@
+# 운영 지표 API 테스트: 조회/저장된 로그를 기반으로 집계, 추세, 상세 이력 응답을 점검한다.
 import pytest
 from httpx import ASGITransport, AsyncClient
 

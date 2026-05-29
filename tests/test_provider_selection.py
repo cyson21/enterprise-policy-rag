@@ -1,3 +1,4 @@
+# LLM 제공자 선택 테스트: 환경값 기반 기본값, API 키 필수 조건, HTTP 페이로드 구성을 검증한다.
 import io
 import json
 import urllib.error

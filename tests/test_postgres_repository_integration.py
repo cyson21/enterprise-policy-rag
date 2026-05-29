@@ -1,3 +1,4 @@
+# PostgreSQL 레포지토리 통합 테스트: 실 DB 스킵 조건과 실사용 검색-추출 라운드트립을 점검한다.
 import os
 
 import pytest

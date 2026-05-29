@@ -1,3 +1,4 @@
+# 문서 API 테스트: 워크스페이스 스코프 정합성 및 문서 상세/목록 응답 구조를 검증한다.
 import pytest
 from httpx import ASGITransport, AsyncClient
 

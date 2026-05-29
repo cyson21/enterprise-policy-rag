@@ -1,10 +1,12 @@
 import { normalizePersona, personas, workspace, type ApiPersona, type Persona } from "../fixtures/personas";
 import { isStaticDemoMode } from "../config/demoMode";
 
+// API 호출과 데모 폴백 응답을 한곳에서 모아 프런트 동작을 단일 진입점에서 관리한다.
 export async function getCurrentWorkspace() {
   return fetchJson("/api/workspaces/current", workspace);
 }
 
+// 서버 persona 응답을 프런트 Persona 타입으로 정규화해 화면 렌더링이 동일 스키마를 사용하도록 맞춘다.
 export async function getPersonas() {
   const fallback = { personas };
   const response = await fetchJson<{ personas: ApiPersona[] }>("/api/personas", {
@@ -35,6 +37,8 @@ export async function getAuthSession() {
   return fetchJson<AuthSession>("/api/auth/session", fallbackAuthSession);
 }
 
+// 화면 전반에서 재사용되는 API 응답 모델.
+// 타입을 분리해 화면/테스트가 동일한 인터페이스를 가리키도록 유지한다.
 export type RetrievalResult = {
   rank: number;
   chunk_id: string;
@@ -260,6 +264,7 @@ export type EvalRunsResponse = {
   runs: EvalRun[];
 };
 
+// 화면별 호출은 동일 경로 규약을 공유하고, route/path만 달리 바인딩한다.
 export async function loadEvalRuns(workspaceId: string) {
   return fetchJson<EvalRunsResponse>(
     `/api/eval-runs?workspace_id=${encodeURIComponent(workspaceId)}`,
@@ -316,6 +321,7 @@ export async function loadDocumentDetail(workspaceId: string, documentId: string
   );
 }
 
+// admin endpoint는 인증 헤더를 붙여 호출한다.
 export async function loadAdminAuditLogs(persona: Persona) {
   return fetchAdminJson<AdminAuditLogsResponse>(
     "/api/admin/audit-logs",
@@ -377,6 +383,7 @@ export async function loadRetrieval({
   topK?: number;
   scoreThreshold?: number;
 }) {
+  // 페이지에서 조절한 검색 제한값을 서버로 그대로 전달해 실험값 비교를 보존한다.
   return fetchJson<RetrievalResponse>("/api/retrieve", {
     query,
     results: fallbackResults(persona),
@@ -409,6 +416,7 @@ export async function loadAnswer({
   topK?: number;
   scoreThreshold?: number;
 }) {
+  // 검색과 답변은 동일한 상위 파라미터를 쓰며 결과만 타입과 UI 집약이 다르다.
   return fetchJson<AnswerResponse>("/api/answer", fallbackAnswer(persona, query), {
     method: "POST",
     headers: {
@@ -425,6 +433,8 @@ export async function loadAnswer({
   });
 }
 
+// 데모 모드에서는 네트워크를 건너뛰고, 실패 시에도 fallback 타입으로 복구한다.
+// 덕분에 화면 동작은 유지하고 실제 API 의존성을 분리해 디버깅할 수 있다.
 async function fetchJson<T>(path: string, fallback: T, init?: RequestInit): Promise<T> {
   if (isStaticDemoMode) {
     return fallback;
@@ -454,6 +464,8 @@ async function fetchAdminJson<T>(path: string, fallback: T, init?: RequestInit):
   return (await response.json()) as T;
 }
 
+// 관리자 요청에는 사용자 식별과 권한 정보를 헤더로 전달한다.
+// role/부서가 서버측 정책 경로와 동기화되어야 하므로 공통 함수로 고정한다.
 function adminIdentityHeaders(persona: Persona): HeadersInit {
   return {
     "x-enterprise-workspace-id": workspace.id,
@@ -464,6 +476,7 @@ function adminIdentityHeaders(persona: Persona): HeadersInit {
   };
 }
 
+// 문서 목록 폴백은 목록/상세 화면에서 공통 참조되는 최소 문서 집합이다.
 const fallbackDocuments: DocumentSummary[] = [
   {
     id: "doc_1",
@@ -515,6 +528,7 @@ const fallbackDocuments: DocumentSummary[] = [
   },
 ];
 
+// 인증 세션 폴백은 기본 사용자로 초기 화면이 무중단 동작하도록 만든다.
 const fallbackAuthSession: AuthSession = {
   workspace_id: workspace.id,
   user_id: personas[0].id,
@@ -525,6 +539,7 @@ const fallbackAuthSession: AuthSession = {
   source: "demo_persona",
 };
 
+// 문서 상세 응답이 없을 때도 첫 번째 문서를 선택해 상세 패널이 빈 화면이 되지 않게 한다.
 function fallbackDocumentDetail(documentId: string): DocumentDetailResponse {
   const document = fallbackDocuments.find((item) => item.id === documentId) ?? fallbackDocuments[0];
   return {
@@ -542,6 +557,7 @@ function fallbackDocumentDetail(documentId: string): DocumentDetailResponse {
   };
 }
 
+// 데모 텍스트는 제목 키워드로 분기해 시나리오별 근거 표시 예시를 제공한다.
 function fallbackChunkText(title: string): string {
   if (title.includes("Security")) {
     return "보안 사고 발생 시 즉시 Security on-call 채널에 알리고 incident commander를 지정합니다.";
@@ -555,6 +571,7 @@ function fallbackChunkText(title: string): string {
   return "VPN 등록 절차는 사내 포털에서 기기 등록을 완료한 뒤 보안 승인을 요청합니다.";
 }
 
+// 감사 로그 폴백은 관리 패널 상태/메시지 렌더링을 안정화한다.
 const fallbackAuditLogs: AdminAuditLog[] = [
   {
     id: "audit_demo_updated",
@@ -583,6 +600,7 @@ const fallbackAuditLogs: AdminAuditLog[] = [
   },
 ];
 
+// 관리자 업데이트 폴백은 payload 반영치로 문서 본문/메타 반영 상태를 흉내 낸다.
 function fallbackAdminUpdate(documentId: string, payload: DocumentUpdatePayload): AdminDocumentUpdateResponse {
   const current = fallbackDocuments.find((item) => item.id === documentId) ?? fallbackDocuments[0];
   const document = {
@@ -602,6 +620,7 @@ function fallbackAdminUpdate(documentId: string, payload: DocumentUpdatePayload)
   };
 }
 
+// 운영 지표 폴백으로 summary 카드에서 비어 있는 KPI가 렌더되지 않도록 기본값을 둔다.
 const fallbackMetrics: MetricsSummary = {
   workspace_id: "acme",
   searches: 128,
@@ -612,6 +631,7 @@ const fallbackMetrics: MetricsSummary = {
   provider: "fake",
 };
 
+// 최근 쿼리 폴백은 사용자·지연·스코어 뷰를 위한 최소 샘플을 제공한다.
 const fallbackQueries: RecentQuery[] = [
   {
     id: "query_001",
@@ -639,6 +659,7 @@ const fallbackQueries: RecentQuery[] = [
   },
 ];
 
+// 추세 그래프 폴백은 최소 시간축 데이터로 렌더링이 항상 성립되게 한다.
 const fallbackTrend: QueryTrendPoint[] = [
   {
     date: "2026-05-21",
@@ -649,6 +670,7 @@ const fallbackTrend: QueryTrendPoint[] = [
   },
 ];
 
+// 조회 모드와 답변 모드에 따라 answer/citation 블록 존재를 맞춰 상세 패널 분기를 안정화한다.
 function fallbackQueryDetail(workspaceId: string, queryId: string): QueryDetailResponse {
   const query = fallbackQueries.find((item) => item.id === queryId) ?? {
     ...fallbackQueries[0],
@@ -699,6 +721,7 @@ function fallbackQueryDetail(workspaceId: string, queryId: string): QueryDetailR
   };
 }
 
+// 상위 근거 문서 폴백은 근거 테이블이 빈 값이 되지 않게 한다.
 const fallbackTopEvidence: TopEvidenceItem[] = [
   {
     document_id: "doc_2",
@@ -718,6 +741,7 @@ const fallbackTopEvidence: TopEvidenceItem[] = [
   },
 ];
 
+// 평가 폴백은 golden demo 기준 지표를 표시할 때 기본 레퍼런스 행위를 보장한다.
 const fallbackEvalRun: EvalRun = {
   id: "eval_golden-demo_fake",
   workspace_id: "acme",
@@ -741,6 +765,7 @@ const fallbackEvalRun: EvalRun = {
   ],
 };
 
+// 답변 폴백은 검색 결과 존재 시 근거 항목을 최소 1개 붙여 답변 패널을 보완한다.
 function fallbackAnswer(persona: Persona, query: string): AnswerResponse {
   const result = fallbackResults(persona)[0];
   if (!result) {
@@ -780,6 +805,7 @@ function fallbackAnswer(persona: Persona, query: string): AnswerResponse {
   };
 }
 
+// 데모 모드에서 부서별 결과 분기 예시를 유지해 권한 기반 접근 차이를 확인한다.
 function fallbackResults(persona: Persona): RetrievalResult[] {
   if (persona.departmentIds.includes("finance")) {
     return [
