@@ -1,11 +1,14 @@
+-- pgvector 확장: 임베딩 검색을 위해 벡터 타입과 유사도 인덱스를 지원한다.
 CREATE EXTENSION IF NOT EXISTS vector;
 
+-- 다중 워크스페이스를 1:1 식별자로 분리한다.
 CREATE TABLE IF NOT EXISTS workspaces (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- 문서 본문과 공개/권한 메타데이터를 보관해 검색 결과 필터링 근거를 구성한다.
 CREATE TABLE IF NOT EXISTS documents (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -22,6 +25,7 @@ CREATE TABLE IF NOT EXISTS documents (
 ALTER TABLE documents
     ADD COLUMN IF NOT EXISTS indexing_status TEXT NOT NULL DEFAULT 'ready';
 
+-- 문서별 청크를 분리 저장해 임베딩 기반 재현 검색이 가능하도록 한다.
 CREATE TABLE IF NOT EXISTS document_chunks (
     id TEXT PRIMARY KEY,
     document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
@@ -33,6 +37,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     UNIQUE (document_id, chunk_index)
 );
 
+-- 문서 조회/권한 필터 쿼리 성능을 위한 인덱스 묶음.
 CREATE INDEX IF NOT EXISTS idx_documents_workspace_visibility
     ON documents (workspace_id, visibility);
 
@@ -49,6 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding
     ON document_chunks USING ivfflat (embedding vector_cosine_ops)
     WITH (lists = 100);
 
+-- 조회 로그: 사용자 요청 히스토리와 비용/지연/반환 건수 집계에 사용된다.
 CREATE TABLE IF NOT EXISTS query_logs (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -71,6 +77,7 @@ CREATE INDEX IF NOT EXISTS idx_query_logs_workspace_created_at
 CREATE INDEX IF NOT EXISTS idx_query_logs_workspace_mode
     ON query_logs (workspace_id, mode);
 
+-- 검색 결과: 질의별 상위 청크/문서 매핑을 저장해 근거 탭에서 재조회할 수 있게 한다.
 CREATE TABLE IF NOT EXISTS retrieval_results (
     id TEXT PRIMARY KEY,
     query_log_id TEXT NOT NULL REFERENCES query_logs(id) ON DELETE CASCADE,
@@ -91,6 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_retrieval_results_workspace_document
 CREATE INDEX IF NOT EXISTS idx_retrieval_results_query_log
     ON retrieval_results (query_log_id, rank);
 
+-- 답변 레코드: LLM 호출 응답/비용/지연을 추적한다.
 CREATE TABLE IF NOT EXISTS answers (
     id TEXT PRIMARY KEY,
     query_log_id TEXT NOT NULL UNIQUE REFERENCES query_logs(id) ON DELETE CASCADE,
@@ -107,6 +115,7 @@ CREATE TABLE IF NOT EXISTS answers (
 CREATE INDEX IF NOT EXISTS idx_answers_workspace_created_at
     ON answers (workspace_id, created_at DESC);
 
+-- 답변에 사용된 인용문 근거를 유지해 검증 화면에서 재현 가능하게 한다.
 CREATE TABLE IF NOT EXISTS citations (
     id TEXT PRIMARY KEY,
     answer_id TEXT NOT NULL REFERENCES answers(id) ON DELETE CASCADE,
@@ -128,6 +137,7 @@ CREATE INDEX IF NOT EXISTS idx_citations_workspace_document
 CREATE INDEX IF NOT EXISTS idx_citations_answer_rank
     ON citations (answer_id, rank);
 
+-- 평가 실행: 데이터셋 단위로 일괄 조회/추론 품질 지표를 저장한다.
 CREATE TABLE IF NOT EXISTS eval_runs (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
@@ -142,6 +152,7 @@ CREATE TABLE IF NOT EXISTS eval_runs (
 CREATE INDEX IF NOT EXISTS idx_eval_runs_workspace_created_at
     ON eval_runs (workspace_id, created_at DESC);
 
+-- 평가 케이스 결과: 각 케이스의 조회/근거 일치 여부를 분해해 이슈 분석을 가능하게 한다.
 CREATE TABLE IF NOT EXISTS eval_case_results (
     id TEXT PRIMARY KEY,
     eval_run_id TEXT NOT NULL REFERENCES eval_runs(id) ON DELETE CASCADE,
@@ -160,6 +171,7 @@ CREATE TABLE IF NOT EXISTS eval_case_results (
 CREATE INDEX IF NOT EXISTS idx_eval_case_results_eval_run
     ON eval_case_results (eval_run_id, case_id);
 
+-- 감사 로그: 관리자 조작 이력을 감사 화면에서 표시하기 위한 감사성 데이터.
 CREATE TABLE IF NOT EXISTS admin_audit_logs (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,

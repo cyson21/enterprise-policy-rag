@@ -36,7 +36,7 @@ class OpenAITransport(Protocol):
 
 
 class FakeEmbeddingProvider:
-    """Deterministic local embedding provider for tests and no-key development."""
+    """키 없이 동작하는 로컬 임베딩 공급자."""
 
     def __init__(self, dimensions: int = 64) -> None:
         if dimensions < 8:
@@ -44,6 +44,7 @@ class FakeEmbeddingProvider:
         self.dimensions = dimensions
 
     def embed(self, text: str) -> list[float]:
+        # 정규식 토큰 단위로 해시 기반 카운트 임베딩을 만들고 L2 정규화해 재현성을 확보한다.
         vector = [0.0] * self.dimensions
         for token in _tokens(text):
             digest = hashlib.sha256(token.encode("utf-8")).digest()
@@ -67,11 +68,12 @@ def _tokens(text: str) -> list[str]:
 
 
 class FakeLLMProvider:
-    """Deterministic local LLM provider for no-key answer-layer development."""
+    """키가 없어도 동작하는 로컬 LLM 폴백."""
 
     provider_name = "fake"
 
     def complete(self, prompt: str) -> str:
+        # 주어진 증거 블록에서 첫 근거를 우선 사용해 일관된 fallback 응답을 생성한다.
         evidence_lines = [
             line.removeprefix("- ").strip()
             for line in prompt.splitlines()
@@ -87,7 +89,7 @@ class FakeLLMProvider:
 
 
 class OpenAILLMProvider:
-    """OpenAI LLM provider kept outside the default fake path."""
+    """운영 모드에서만 쓰는 OpenAI LLM 연결 어댑터."""
 
     provider_name = "openai"
 
@@ -117,7 +119,7 @@ class OpenAILLMProvider:
 
 
 class OpenAIHTTPTransport:
-    """Small Responses API HTTP transport for explicit opt-in OpenAI runs."""
+    """OpenAI Responses API 전송을 담당하는 경량 Transport."""
 
     def __init__(
         self,
@@ -134,6 +136,7 @@ class OpenAIHTTPTransport:
         self._opener = opener or urllib.request.urlopen
 
     def complete(self, api_key: str, payload: dict[str, object]) -> str:
+        # HTTP 요청/응답 파싱 실패를 사용자 메시지로 변환해 상위 계층이 일관된 에러 형식을 받도록 한다.
         request = urllib.request.Request(
             self.endpoint,
             data=json.dumps(payload).encode("utf-8"),
@@ -158,6 +161,7 @@ class OpenAIHTTPTransport:
 
 
 def _extract_openai_text(body: bytes) -> str:
+    # output_text가 비어 있어도 output 구조에서 텍스트 조각을 수집해 답변을 복원한다.
     try:
         payload = json.loads(body.decode("utf-8"))
     except json.JSONDecodeError as exc:
@@ -195,6 +199,7 @@ def _extract_openai_text(body: bytes) -> str:
 
 
 def _extract_openai_error(body: bytes) -> str:
+    # OpenAI 실패 응답에서 message/문자열 폴백을 순차적으로 찾는다.
     try:
         payload = json.loads(body.decode("utf-8"))
     except json.JSONDecodeError:
@@ -211,6 +216,7 @@ def _extract_openai_error(body: bytes) -> str:
 
 
 def build_llm_provider_from_env(environ: Mapping[str, str]) -> LLMProvider:
+    # 운영 설정에 따라 fake/openai 공급자를 선택하고, 필요한 환경변수 미비 시 조기 종료한다.
     provider = environ.get("LLM_PROVIDER", "fake").strip().lower()
     if provider in {"", "fake"}:
         return FakeLLMProvider()

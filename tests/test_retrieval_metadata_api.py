@@ -1,3 +1,4 @@
+# 검색 메타데이터 API 테스트: 결과의 access_reason 및 반환 형식 안정성을 검증한다.
 import pytest
 from httpx import ASGITransport, AsyncClient
 

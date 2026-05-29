@@ -1,3 +1,4 @@
+# 조회 로그 테스트: 인메모리/PostgreSQL 레포지토리의 최근 조회, 상위 근거, 상세 이력 매핑을 검증한다.
 from datetime import datetime, timezone
 
 import pytest

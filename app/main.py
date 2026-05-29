@@ -13,6 +13,7 @@ from app.runtime import build_services_from_env
 
 
 def create_app(seed_demo: bool = True) -> Any:
+    # 앱 시작 시점에 서비스/인증 공급자를 먼저 생성해 라우트와 fallback 경로에 동일한 제어권한 모델을 적용한다.
     services = build_services_from_env()
     auth_provider = build_auth_context_provider_from_env()
     if seed_demo:
@@ -154,6 +155,7 @@ def create_app(seed_demo: bool = True) -> Any:
             return services.answer(_answer_query_from_session(session, payload)).model_dump(mode="json")
 
         return app
+    # FastAPI 미설치 환경에서는 Starlette만으로도 기본 API 호환 엔드포인트를 제공한다.
     except ModuleNotFoundError as exc:
         if exc.name != "fastapi":
             raise
@@ -363,10 +365,12 @@ def _create_starlette_fallback(services: PolicyRagServices, auth_provider: Any) 
 
 
 def _current_auth_session(auth_provider: Any, headers: Any) -> Any:
+    """요청 헤더에서 현재 사용자의 인증 세션을 해석해 컨텍스트 바인딩에 사용한다."""
     return auth_provider.current_session(headers)
 
 
 def _require_admin_session(auth_provider: Any, headers: Any) -> Any:
+    """관리 API는 role=admin 조건을 강제해 권한 경계를 중앙에서 선별한다."""
     session = _current_auth_session(auth_provider, headers)
     if session.role != "admin":
         raise AuthContextError(status_code=403, detail="admin role required")
@@ -374,6 +378,7 @@ def _require_admin_session(auth_provider: Any, headers: Any) -> Any:
 
 
 def _retrieval_query_from_session(session: Any, payload: SessionSearchQuery) -> RetrievalQuery:
+    # 관리자/사용자별 질의 필터와 공용 검색 파라미터를 하나의 세션 기반 조회 모델로 정규화한다.
     return RetrievalQuery(
         workspace_id=session.workspace_id,
         user_id=session.user_id,
@@ -385,6 +390,7 @@ def _retrieval_query_from_session(session: Any, payload: SessionSearchQuery) -> 
 
 
 def _answer_query_from_session(session: Any, payload: SessionSearchQuery) -> AnswerQuery:
+    # 조회 질의 모델을 답변 질의 모델로 확장해 답변 파이프라인에서 동일한 인증 컨텍스트를 재사용한다.
     return AnswerQuery(**_retrieval_query_from_session(session, payload).model_dump())
 
 

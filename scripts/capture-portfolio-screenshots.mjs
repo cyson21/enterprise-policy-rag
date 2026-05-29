@@ -5,12 +5,14 @@ import { extname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 
+// 포트폴리오용 정적 데모 이미지를 캡처해 브랜치 성능·레이아웃 변경 전후를 추적한다.
 const root = resolve(import.meta.dirname, "..");
 const distRoot = resolve(root, "web", "dist");
 const assetRoot = resolve(root, "docs", "assets");
 const chromePath = findChromePath();
 const requestedPaths = [];
 
+// 화면별 의도한 라우트와 검출 텍스트를 묶어 의존성 없는 회귀 스냅샷을 확보한다.
 const captures = [
   {
     label: "operations desktop",
@@ -55,6 +57,7 @@ const captures = [
 ];
 
 async function main() {
+  // 빌드 결과물과 브라우저 실행 가능성은 캡처 전제 조건이므로 우선 실패를 빠르게 리포트한다.
   if (!existsSync(resolve(distRoot, "index.html"))) {
     console.error("missing web/dist/index.html; run node scripts/run-web-task.mjs build:static first");
     process.exit(1);

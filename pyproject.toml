@@ -1,4 +1,5 @@
 [project]
+# 프로젝트 메타데이터는 실행 환경/의존성 관리 기준만 정의하며 테스트 로직은 별도 테스트 코드에 둔다.
 name = "enterprise-policy-rag"
 version = "0.1.0"
 description = "Permission-aware retrieval core for enterprise policy RAG"
@@ -12,6 +13,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# 개발용 의존성만 별도 그룹으로 분리해 운영 런타임과의 분리를 유지한다.
 dev = [
   "httpx>=0.27,<1.0",
   "pytest>=8.0,<10.0",
@@ -19,6 +21,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+# 테스트 경로는 테스트 루트에서만 탐색하도록 고정해 CI 안정성을 확보한다.
 asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]

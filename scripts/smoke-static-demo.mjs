@@ -4,11 +4,13 @@ import { existsSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 
+// 정적 산출물을 로컬에서 실행해 핵심 화면 텍스트가 렌더링되는지 확인한다.
 const root = resolve(import.meta.dirname, "..");
 const distRoot = resolve(root, "web", "dist");
 const chromePath = findChromePath();
 const requestedPaths = [];
 
+// API 호출이 끼지 않고 정적 라우트만 렌더되는지 검증하는 보조 스모크 스크립트다.
 if (!existsSync(resolve(distRoot, "index.html"))) {
   console.error("missing web/dist/index.html; run node scripts/run-web-task.mjs build:static first");
   process.exit(1);

@@ -1,3 +1,4 @@
+# 답변 API 테스트: 허가된 사용자만 증거 기반 답변/인용문을 받는지 검증한다.
 import pytest
 from httpx import ASGITransport, AsyncClient
 

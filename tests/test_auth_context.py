@@ -1,3 +1,4 @@
+# 인증 컨텍스트 테스트: demo/trusted_headers/oidc 경로별 세션 해석과 권한 전달 우선순위를 검증한다.
 import time
 
 import jwt

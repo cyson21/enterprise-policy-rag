@@ -1,3 +1,4 @@
+# OpenAI 실전 스모크 테스트: 플래그/환경 설정 기반 실행 조건과 민감정보 출력 금지 경로를 검증한다.
 from __future__ import annotations
 
 import io

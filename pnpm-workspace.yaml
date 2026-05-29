@@ -1,5 +1,7 @@
+# 루트에 설치할 workspace 패키지를 web으로 한정해 의존성 범위를 좁힌다.
 packages:
   - web
 
+# Vercel 정적 배포에서 esbuild 기반 빌드를 허용하기 위한 런타임 플래그.
 allowBuilds:
   esbuild: true
