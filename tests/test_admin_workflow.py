@@ -25,6 +25,7 @@ EMPLOYEE_HEADERS = {
 async def ingest_document(client: AsyncClient) -> str:
     response = await client.post(
         "/documents",
+        headers=ADMIN_HEADERS,
         json={
             "workspace_id": "acme",
             "title": "Draft VPN Policy",

@@ -5,6 +5,9 @@ from app.providers import EmbeddingProvider
 from app.repository import PolicyRepository
 
 
+OVERSAMPLE = 4
+
+
 class RetrievalService:
     """질의 임베딩 생성부터 정렬된 증거 집계까지를 담당하는 검색 서비스."""
     def __init__(
@@ -18,15 +21,23 @@ class RetrievalService:
     def retrieve(self, query: RetrievalQuery) -> RetrievalResponse:
         query_embedding = self.embedding_provider.embed(query.query)
         scored_results: list[tuple[float, StoredChunk, str]] = []
+        candidate_limit = max(query.top_k * OVERSAMPLE, query.top_k)
 
-        for chunk in self.repository.list_chunks(query.workspace_id):
+        for chunk in self.repository.search_candidate_chunks(
+            query.workspace_id,
+            query_embedding,
+            owner_user_id=query.user_id,
+            department_ids=query.department_ids,
+            limit=candidate_limit,
+        ):
             access_reason = _access_reason(chunk, query)
             if access_reason is None:
                 continue
             score = _similarity(query_embedding, chunk.embedding)
-            if score <= 0 or score < query.score_threshold:
+            # 정규화된 내적을 코사인 점수로 사용하므로 threshold 범위는 [-1, 1]이다.
+            if score < query.score_threshold:
                 continue
-            # 점수 임계값 미만은 제거하고, 접근권한 검증이 끝난 항목만 순위 후보로 적재한다.
+            # DB/저장소 권한 필터 이후에도 Python 권한 판정을 반복해 방어선을 유지한다.
             scored_results.append((score, chunk, access_reason))
 
         scored_results.sort(key=lambda item: (-item[0], item[1].document_id, item[1].chunk_index, item[1].id))

@@ -82,7 +82,7 @@ export function RetrievalLabPage({ workspaceId, activePersona }: PageProps) {
             점수 기준
             <input
               className="thresholdControl"
-              min="0"
+              min="-1"
               max="1"
               step="0.05"
               type="range"
@@ -171,9 +171,9 @@ function clampTopK(value: number) {
 }
 
 function clampScoreThreshold(value: number) {
-  // 점수 임계값은 [0,1]로 고정해 유효하지 않은 실험 입력을 방지한다.
+  // 정규화된 내적 기반 점수 임계값은 [-1,1]로 고정해 서버 검증 범위와 맞춘다.
   if (!Number.isFinite(value)) {
     return 0;
   }
-  return Math.min(1, Math.max(0, value));
+  return Math.min(1, Math.max(-1, value));
 }

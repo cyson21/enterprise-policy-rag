@@ -1,5 +1,6 @@
 # 런타임 DI 테스트: DATABASE_URL 존재 유무에 따른 저장소 교체를 검증한다.
 from app.query_logs import InMemoryQueryLogRepository
+from app.providers import OpenAIEmbeddingProvider
 from app.repository import InMemoryPolicyRepository
 from app.eval_runs import InMemoryEvalRunRepository
 
@@ -14,6 +15,23 @@ def test_build_services_from_env_uses_in_memory_repositories_without_database_ur
     assert isinstance(services.repository, InMemoryPolicyRepository)
     assert isinstance(services.query_log_repository, InMemoryQueryLogRepository)
     assert isinstance(services.eval_run_repository, InMemoryEvalRunRepository)
+
+
+def test_build_services_from_env_injects_embedding_provider(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    from app.runtime import build_services_from_env
+
+    services = build_services_from_env(
+        {
+            "EMBEDDING_PROVIDER": "openai",
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_EMBEDDING_MODEL": "text-embedding-test",
+        }
+    )
+
+    assert isinstance(services.embedding_provider, OpenAIEmbeddingProvider)
+    assert services.embedding_provider.model == "text-embedding-test"
 
 
 def test_build_services_from_env_uses_postgres_repositories_with_database_url(monkeypatch):

@@ -6,9 +6,13 @@ import urllib.error
 import pytest
 
 from app.providers import (
+    FakeEmbeddingProvider,
     FakeLLMProvider,
+    OpenAIEmbeddingProvider,
+    OpenAIEmbeddingTransport,
     OpenAIHTTPTransport,
     OpenAILLMProvider,
+    build_embedding_provider_from_env,
     build_llm_provider_from_env,
 )
 from app.runtime import build_services_from_env
@@ -21,6 +25,16 @@ class RecordingOpenAITransport:
     def complete(self, api_key: str, payload: dict[str, object]) -> str:
         self.calls.append((api_key, payload))
         return "openai adapter response"
+
+
+class RecordingEmbeddingTransport:
+    def __init__(self, embeddings: list[list[float]]) -> None:
+        self.embeddings = embeddings
+        self.calls: list[tuple[str, dict[str, object]]] = []
+
+    def embed(self, api_key: str, payload: dict[str, object]) -> list[list[float]]:
+        self.calls.append((api_key, payload))
+        return self.embeddings
 
 
 class FakeHTTPResponse:
@@ -52,6 +66,46 @@ def test_build_llm_provider_defaults_to_fake_without_api_key():
 
     assert isinstance(provider, FakeLLMProvider)
     assert provider.provider_name == "fake"
+
+
+def test_build_embedding_provider_defaults_to_fake_without_api_key():
+    provider = build_embedding_provider_from_env({})
+
+    assert isinstance(provider, FakeEmbeddingProvider)
+    assert provider.provider_name == "fake"
+    assert provider.dimensions == 64
+
+
+def test_build_embedding_provider_requires_api_key_when_openai_is_selected():
+    with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
+        build_embedding_provider_from_env({"EMBEDDING_PROVIDER": "openai"})
+
+
+def test_openai_embedding_provider_batches_inputs_and_normalizes_vectors():
+    transport = RecordingEmbeddingTransport([[3.0, 4.0] + [0.0] * 62, [0.0] * 64])
+    provider = OpenAIEmbeddingProvider(api_key="sk-test", model="text-test", transport=transport)
+
+    vectors = provider.embed_many(["remote work", ""])
+
+    assert vectors[0][:2] == [0.6, 0.8]
+    assert vectors[1] == [0.0] * 64
+    api_key, payload = transport.calls[0]
+    assert api_key == "sk-test"
+    assert payload == {
+        "model": "text-test",
+        "input": ["remote work", ""],
+        "dimensions": 64,
+    }
+
+
+def test_openai_embedding_provider_rejects_wrong_dimension_response():
+    provider = OpenAIEmbeddingProvider(
+        api_key="sk-test",
+        transport=RecordingEmbeddingTransport([[1.0, 0.0]]),
+    )
+
+    with pytest.raises(RuntimeError, match="64 dimensions"):
+        provider.embed("remote work")
 
 
 def test_build_llm_provider_requires_api_key_when_openai_is_selected():
@@ -98,6 +152,26 @@ def test_openai_http_transport_posts_responses_payload_and_extracts_output_text(
         "input": "Question",
         "store": False,
     }
+
+
+def test_openai_embedding_transport_posts_embeddings_payload_and_parses_data():
+    opener = RecordingHTTPOpener({"data": [{"embedding": [1.0, 0.0]}, {"embedding": [0.0, 1.0]}]})
+    transport = OpenAIEmbeddingTransport(
+        endpoint="https://api.openai.test/v1/embeddings",
+        timeout_seconds=9.5,
+        opener=opener,
+    )
+
+    vectors = transport.embed(
+        api_key="sk-test",
+        payload={"model": "text-test", "input": ["a", "b"], "dimensions": 64},
+    )
+
+    assert vectors == [[1.0, 0.0], [0.0, 1.0]]
+    request, timeout = opener.calls[0]
+    assert timeout == 9.5
+    assert request.full_url == "https://api.openai.test/v1/embeddings"
+    assert request.get_header("Authorization") == "Bearer sk-test"
 
 
 def test_openai_http_transport_extracts_message_content_text():
@@ -152,3 +226,16 @@ def test_runtime_can_select_openai_llm_provider_explicitly_without_database_url(
 
     assert isinstance(services.llm_provider, OpenAILLMProvider)
     assert services.llm_provider.model == "gpt-test"
+
+
+def test_llm_provider_uses_timeout_from_environment():
+    provider = build_llm_provider_from_env(
+        {
+            "LLM_PROVIDER": "openai",
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_TIMEOUT_SECONDS": "7.25",
+        }
+    )
+
+    assert isinstance(provider, OpenAILLMProvider)
+    assert provider._transport.timeout_seconds == 7.25

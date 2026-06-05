@@ -5,6 +5,8 @@ import pytest
 
 from app.models import QueryLogCreate
 from app.models import AnswerCitation, AnswerResponse, RetrievalResult, Visibility
+from app.models import DocumentCreate, RetrievalQuery
+from app.services import PolicyRagServices
 import app.query_logs as query_logs_module
 from app.query_logs import (
     InMemoryQueryLogRepository,
@@ -108,6 +110,47 @@ def test_in_memory_query_logs_build_recent_rows_and_metrics():
     assert metrics.p95_latency_ms == 200
     assert metrics.retrieval_hit_rate == 0.5
     assert metrics.zero_result_rate == 0.5
+
+
+class NamedEmbeddingProvider:
+    provider_name = "openai"
+    dimensions = 64
+
+    def embed(self, text: str) -> list[float]:
+        return [1.0] + [0.0] * 63
+
+    def embed_many(self, texts: list[str]) -> list[list[float]]:
+        return [self.embed(text) for text in texts]
+
+
+def test_retrieval_query_log_records_embedding_provider_name():
+    query_logs = InMemoryQueryLogRepository()
+    services = PolicyRagServices(query_log_repository=query_logs, embedding_provider=NamedEmbeddingProvider())
+    services.ingest_document(
+        DocumentCreate(
+            workspace_id="acme",
+            title="Remote Access",
+            source_uri="policy://remote",
+            content="VPN access requires MFA.",
+            content_type="text/plain",
+            owner_user_id="user-1",
+            department_ids=[],
+            visibility=Visibility.PRIVATE,
+        )
+    )
+
+    services.retrieve(
+        RetrievalQuery(
+            workspace_id="acme",
+            user_id="user-1",
+            department_ids=[],
+            query="vpn",
+            top_k=1,
+        )
+    )
+
+    logs = query_logs.list_query_logs("acme")
+    assert logs[0].provider == "openai"
 
 
 def test_in_memory_query_logs_store_evidence_details_for_top_evidence():

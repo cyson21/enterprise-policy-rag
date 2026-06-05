@@ -187,7 +187,8 @@ class PolicyRagServices:
                 latency_ms=_elapsed_ms(started),
                 retrieved_count=len(response.results),
                 top_score=response.results[0].score if response.results else 0.0,
-                provider="fake",
+                # retrieval 단계의 provider는 실제 임베딩 provider 식별자를 기록한다.
+                provider=getattr(self.embedding_provider, "provider_name", "fake"),
             )
         )
         self.query_log_repository.add_retrieval_results(query_log.id, response.results)

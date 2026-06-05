@@ -67,17 +67,26 @@ class AnswerService:
         prompt = _build_prompt(query.query, citations)
         # answer 생성은 고정된 prompt 포맷을 사용해 근거-문항 연결을 유지한다.
         answer_text = self.llm_provider.complete(prompt)
+        token_count = _estimate_tokens(prompt, answer_text)
         return AnswerResponse(
             query=query.query,
             answer=answer_text,
             citations=citations,
             refusal_reason=None,
             provider=self.llm_provider.provider_name,
-            token_count=_estimate_tokens(prompt, answer_text),
-            estimated_cost_usd=0.0,
+            token_count=token_count,
+            # 실제 호출이 일어난 답변 경로에서만 provider 단가 기반 비용을 추정한다.
+            estimated_cost_usd=self._estimate_cost_usd(token_count),
             latency_ms=_elapsed_ms(started),
             retrieved_count=len(citations),
         )
+
+    def _estimate_cost_usd(self, token_count: int) -> float:
+        # provider가 비용 추정을 제공하면 사용하고, 없으면 비용을 0으로 둔다.
+        estimator = getattr(self.llm_provider, "estimate_cost_usd", None)
+        if estimator is None:
+            return 0.0
+        return round(float(estimator(token_count)), 6)
 
 
 def _build_prompt(query: str, citations: list[AnswerCitation]) -> str:

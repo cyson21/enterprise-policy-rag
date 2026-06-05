@@ -20,6 +20,7 @@ from app.models import (
     StoredAdminAuditLog,
     StoredChunk,
     StoredDocument,
+    Visibility,
 )
 
 try:
@@ -41,6 +42,17 @@ class PolicyRepository(Protocol):
 
     def list_chunks(self, workspace_id: str) -> list[StoredChunk]:
         """Return retrieval-ready chunks for one workspace."""
+
+    def search_candidate_chunks(
+        self,
+        workspace_id: str,
+        query_embedding: list[float],
+        *,
+        owner_user_id: str,
+        department_ids: Sequence[str],
+        limit: int,
+    ) -> list[StoredChunk]:
+        """Return permission-filtered retrieval candidates ordered by vector similarity."""
 
     def list_documents(self, workspace_id: str) -> list[StoredDocument]:
         """Return documents for one workspace."""
@@ -128,6 +140,35 @@ class InMemoryPolicyRepository:
     def list_chunks(self, workspace_id: str) -> list[StoredChunk]:
         # 검색 경로에서 workspace 경계를 먼저 적용해 cross-workspace 노출을 원천 차단한다.
         return [chunk for chunk in self._chunks.values() if chunk.workspace_id == workspace_id]
+
+    def search_candidate_chunks(
+        self,
+        workspace_id: str,
+        query_embedding: list[float],
+        *,
+        owner_user_id: str,
+        department_ids: Sequence[str],
+        limit: int,
+    ) -> list[StoredChunk]:
+        departments = set(department_ids)
+        candidates = [
+            chunk
+            for chunk in self.list_chunks(workspace_id)
+            if (
+                chunk.owner_user_id == owner_user_id
+                or chunk.visibility == Visibility.PUBLIC
+                or (chunk.visibility == Visibility.DEPARTMENT and departments.intersection(chunk.department_ids))
+            )
+        ]
+        candidates.sort(
+            key=lambda chunk: (
+                -_similarity(query_embedding, chunk.embedding),
+                chunk.document_id,
+                chunk.chunk_index,
+                chunk.id,
+            )
+        )
+        return candidates[: max(0, limit)]
 
     def list_documents(self, workspace_id: str) -> list[StoredDocument]:
         # 문서 목록도 workspace_id 기준으로만 노출해 관리자 UI가 서로 다른 조직 상태를 섞어보지 않게 한다.
@@ -335,6 +376,52 @@ class PostgresPolicyRepository:
                 ORDER BY c.document_id, c.chunk_index, c.id
                 """,
                 (workspace_id,),
+            )
+            return [_chunk_from_row(row) for row in cursor.fetchall()]
+
+    def search_candidate_chunks(
+        self,
+        workspace_id: str,
+        query_embedding: list[float],
+        *,
+        owner_user_id: str,
+        department_ids: Sequence[str],
+        limit: int,
+    ) -> list[StoredChunk]:
+        with self._cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    c.id,
+                    c.document_id,
+                    c.workspace_id,
+                    d.title,
+                    d.source_uri,
+                    d.owner_user_id,
+                    d.department_ids,
+                    d.visibility,
+                    d.indexing_status,
+                    c.chunk_index,
+                    c.text,
+                    c.embedding
+                FROM document_chunks c
+                JOIN documents d ON d.id = c.document_id
+                WHERE c.workspace_id = %s
+                  AND (
+                    d.owner_user_id = %s
+                    OR d.visibility = 'public'
+                    OR (d.visibility = 'department' AND d.department_ids && %s::text[])
+                  )
+                ORDER BY c.embedding <=> %s::vector
+                LIMIT %s
+                """,
+                (
+                    workspace_id,
+                    owner_user_id,
+                    list(department_ids),
+                    _vector_literal(query_embedding),
+                    max(0, limit),
+                ),
             )
             return [_chunk_from_row(row) for row in cursor.fetchall()]
 
@@ -627,6 +714,10 @@ def _audit_log_from_row(row: dict[str, Any]) -> StoredAdminAuditLog:
 def _vector_literal(values: Sequence[float]) -> str:
     # pgvector 삽입용으로 값만으로도 안전하게 읽히는 array literal을 구성한다.
     return "[" + ",".join(str(float(value)) for value in values) + "]"
+
+
+def _similarity(left: Sequence[float], right: Sequence[float]) -> float:
+    return sum(a * b for a, b in zip(left, right))
 
 
 def _parse_vector(value: Any) -> list[float]:

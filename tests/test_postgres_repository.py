@@ -119,6 +119,47 @@ def test_postgres_repository_maps_joined_chunks_for_retrieval():
     assert chunks[0].embedding == [0.5, 0.25]
 
 
+def test_postgres_repository_search_candidate_chunks_uses_vector_topk_and_permission_pushdown():
+    connection = RecordingConnection(
+        rows_by_query={
+            "chunks": [
+                {
+                    "id": "chunk_1",
+                    "document_id": "doc_1",
+                    "workspace_id": "acme",
+                    "title": "Security Incident Manual",
+                    "source_uri": "policy://security-incident",
+                    "owner_user_id": "mina-security",
+                    "department_ids": ["security"],
+                    "visibility": "department",
+                    "chunk_index": 0,
+                    "text": "Preserve evidence first.",
+                    "embedding": "[0.5,0.25]",
+                }
+            ]
+        }
+    )
+    repository = PostgresPolicyRepository(connection=connection)
+
+    chunks = repository.search_candidate_chunks(
+        "acme",
+        [0.5, 0.25],
+        owner_user_id="mina-security",
+        department_ids=["security"],
+        limit=8,
+    )
+
+    assert len(chunks) == 1
+    statement, params = connection.statements[0]
+    assert "WHERE c.workspace_id = %s" in statement
+    assert "d.owner_user_id = %s" in statement
+    assert "d.visibility = 'public'" in statement
+    assert "d.visibility = 'department' AND d.department_ids && %s::text[]" in statement
+    assert "ORDER BY c.embedding <=> %s::vector" in statement
+    assert "LIMIT %s" in statement
+    assert params == ("acme", "mina-security", ["security"], "[0.5,0.25]", 8)
+
+
 def test_postgres_repository_maps_document_summaries_with_chunk_counts():
     connection = RecordingConnection(
         rows_by_query={
