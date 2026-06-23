@@ -198,6 +198,3 @@ colima stop
 | [Production Hardening Checklist](docs/runbooks/production-hardening-checklist.md) | 실제 production SaaS 전환 전 필수 보강 항목 |
 | [Portfolio One-Pager](docs/portfolio-one-pager.md) | 포트폴리오 요약 |
 | [Architecture SVG](docs/assets/architecture.svg) | 아키텍처 다이어그램 |
-
-## Working Rule
-
