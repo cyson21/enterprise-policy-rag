@@ -177,10 +177,10 @@ docker-compose*.yml  PostgreSQL/pgvector optional runtime
 | 순서 | 문서 | 목적 |
 |---|---|---|
 | 1 | [Portfolio One-Pager](docs/portfolio-one-pager.md) | 포트폴리오 요약과 경계 |
-| 3 | [API and Data Model](docs/api-data-model.md) | API surface와 데이터 모델 |
-| 5 | [Local Demo Runbook](docs/runbooks/local-demo.md) | API key 없는 실행 |
-| 6 | [Static Demo Deploy Runbook](docs/runbooks/static-demo-deploy.md) | public read-only demo 배포 |
-| 7 | [Production Hardening Checklist](docs/runbooks/production-hardening-checklist.md) | 운영 전환 전 남은 항목 |
+| 2 | [API and Data Model](docs/api-data-model.md) | API surface와 데이터 모델 |
+| 3 | [Local Demo Runbook](docs/runbooks/local-demo.md) | API key 없는 실행 |
+| 4 | [Static Demo Deploy Runbook](docs/runbooks/static-demo-deploy.md) | public read-only demo 배포 |
+| 5 | [Production Hardening Checklist](docs/runbooks/production-hardening-checklist.md) | 운영 전환 전 남은 항목 |
 
 ## 범위 밖
 
