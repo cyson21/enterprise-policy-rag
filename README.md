@@ -1,217 +1,187 @@
 # Enterprise Policy RAG
 
-Enterprise Policy RAG는 기업 내부 정책, 업무 매뉴얼, 보안 지침 문서를 권한에 맞게 검색하고, 답변 근거와 운영 지표를 제공하는 RAG 백엔드 프로젝트입니다. 기본 실행은 테스트용 provider와 메모리 저장소를 사용하며, PostgreSQL/pgvector와 OpenAI 연동은 필요할 때만 켭니다.
+Enterprise Policy RAG는 사내 정책 문서를 사용자·부서·공개 범위에 따라 검색하고, 검색 근거를 포함한 답변과 조회 기록을 제공하는 FastAPI 백엔드 프로젝트입니다. 기본 경로는 고정 결과를 반환하는 테스트용 임베딩·LLM과 메모리 저장소로 동작하며, PostgreSQL/pgvector와 OpenAI 연동은 명시적으로 선택한 경우에만 사용합니다. 기본 데모 모드는 인증을 강제하지 않으므로 운영 인증이 아니라 권한 검색 흐름을 재현하기 위한 환경입니다.
 
-## 프로젝트 요약
+## 한눈에 보기
 
 | 항목 | 내용 |
 |---|---|
-| 해결하려는 문제 | 사내 문서 RAG에서는 답변 품질뿐 아니라 권한 필터, 출처 표시, 평가, 지연 시간과 비용 기록이 필요함 |
-| 주요 기술 | FastAPI, PostgreSQL/pgvector, provider 분리, 권한 기반 검색, 평가·운영 지표, React 데모 |
-| 주요 기능 | 권한 기반 검색, 출처 표시와 답변 거절, 선택형 provider, 검색 기록 |
-| 확인 방법 | `pytest`, 프런트엔드 스모크 테스트와 빌드, 정적 공개 데모, PostgreSQL 통합 테스트, 선택형 OpenAI 스모크 테스트 |
-| 빠른 실행 | API key 없이 테스트용 provider와 메모리 저장소로 로컬 실행 가능 |
-| 제한 사항 | 공개 데모는 정적 예제 데이터를 사용하며, 운영형 인증·실시간 OpenAI·SaaS 운영은 별도 보완이 필요함 |
-
-## 주요 내용
-
-| 주제 | 관련 문서와 코드 | 설명 |
-|---|---|---|
-| 권한 기반 검색 | [retrieval 구현](app/retrieval.py), [권한 테스트](tests/test_retrieval_permissions.py) | 접근할 수 없는 문서가 검색 후보에 섞이지 않는지 확인 |
-| 출처 표시와 답변 거절 | [answer 구현](app/answer.py), [Answer API 테스트](tests/test_answer_api.py) | 검색 근거가 있을 때만 답변하고 근거가 부족하면 거절하는 흐름 |
-| 공개 데모 | [정적 데모 테스트](scripts/smoke-static-demo.mjs), [배포 문서](docs/runbooks/static-demo-deploy.md) | 공개 화면이 실시간 API나 API key 없이 동작하는지 확인 |
-
-## 주요 코드와 테스트
-
-| 구분 | 코드 또는 기능 | 테스트 또는 실행 방법 |
-|---|---|---|
-| 권한 기반 검색 | [retrieval.py](app/retrieval.py) | [test_retrieval_permissions.py](tests/test_retrieval_permissions.py), [test_retrieval_metadata_api.py](tests/test_retrieval_metadata_api.py) |
-| 출처 표시와 답변 거절 | [answer.py](app/answer.py) | [test_answer_api.py](tests/test_answer_api.py) |
-| 테스트용 provider와 실제 provider 분리 | [ADR-0001](docs/adr/0001-fake-provider-first-retrieval-rag.md) | `pytest -q`, 선택형 `RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py` |
-
-## 실행 환경
-
-| 구분 | 준비 사항 | 확인할 내용 |
-|---|---|---|
-| 기본 로컬 | Python, pnpm | 테스트용 embedding·LLM과 메모리 저장소로 API·UI 테스트 |
-| PostgreSQL 연동 | Docker PostgreSQL/pgvector | 실제 DB 저장소와 API 통합 테스트 |
-| OpenAI 연동 | API key와 환경 변수 | OpenAI adapter 스모크 테스트이며 공개 데모나 기본 CI에는 포함하지 않음 |
-
-## 구현 결과
-
-| 구현 내용 | 결과 | 확인 방법 |
-|---|---|---|
-| 권한 기반 검색 | workspace/user/department/visibility 필터로 private 문서 혼입 방지 | retrieval/API tests |
-| 근거 기반 답변 | citation 후보와 근거 부족 refusal을 API와 UI에서 확인 | answer tests, Search Console |
-| 외부 비용 없는 기본 테스트 | 테스트용 embedding·LLM과 메모리 저장소로 핵심 흐름 확인 | `pytest`, 프런트엔드 스모크 테스트와 빌드 |
-| 선택형 외부 연동 | OpenAI와 PostgreSQL은 환경 변수로만 활성화 | OpenAI 스모크 테스트, PostgreSQL 통합 테스트 |
-
-## 프로젝트 배경
-
-RAG를 단순 챗봇 기능으로 만들면 검색 권한, 답변 근거, 운영 지표 같은 백엔드 문제가 드러나지 않습니다. 이 프로젝트는 “누가 어떤 문서를 볼 수 있는가”, “답변 근거가 무엇인가”, “검색 품질과 비용을 어떻게 기록하는가”에 집중했습니다.
-
-## 주요 설계
-
-| 설계 | 선택 이유 | 구현과 테스트 |
-|---|---|---|
-| 검색 전 권한 필터 | 생성 모델을 호출하기 전에 접근 가능한 chunk만 후보로 만들어야 함 | 권한 필터 테스트 |
-| 테스트용 provider 기본값 | API key, 비용, 네트워크 없이 반복 테스트하기 위함 | 테스트용 embedding·LLM, `pytest` |
-| 출처 표시와 답변 거절 | 근거 없는 답변을 줄이고 판단 근거를 남기기 위함 | Answer API 테스트, Search Console |
-| 운영 지표 | 지연 시간, token, 예상 비용, 검색 품질을 기록하기 위함 | metrics·trend·detail API |
+| 문제 | RAG 검색 후보에 접근 불가능한 문서가 포함되거나, 근거 없이 답변이 생성되는 상황을 제어 |
+| 핵심 구현 | 권한 범위 검색, PostgreSQL SQL 선필터, 근거 부족 시 답변 거절, 인용 정보, 조회 기록, 고정 평가 데이터 |
+| 기본 실행 | Python 3.11 이상, 메모리 저장소, 테스트용 임베딩·LLM, API key 불필요 |
+| 선택 실행 | PostgreSQL 16 + pgvector, OpenAI Responses·Embeddings API, OIDC JWT 또는 신뢰 헤더 인증 |
+| 검증 방식 | `pytest`, PostgreSQL 통합 테스트, 프런트엔드 빌드·스모크 검사, 선택형 OpenAI 스모크 검사 |
+| 공개 데모 경계 | 정적 예제 데이터만 렌더링하며 FastAPI, PostgreSQL, OpenAI를 호출하지 않음 |
 
 ## 아키텍처
 
 ```text
-문서 등록
--> deterministic chunking
--> embedding 저장(in-memory 또는 PostgreSQL/pgvector)
--> workspace/user/department/visibility 권한 필터
--> retrieval 결과와 citation 후보 생성
--> fake 또는 OpenAI LLM provider
--> 답변, refusal, citation, query log, eval/metric 저장
--> React demo console / static public demo
+클라이언트
+  -> 인증 컨텍스트
+     - demo: 고정 페르소나 / 비강제 인증
+     - trusted_headers: 외부 인증 계층이 전달한 헤더
+     - oidc_jwt: issuer, audience, 서명 검증
+  -> FastAPI API
+  -> 문서 청킹과 임베딩
+  -> 저장소
+     - 기본: 메모리
+     - 선택: PostgreSQL/pgvector, SQL 권한 선필터
+  -> 검색 결과와 인용 후보
+  -> 근거 없음: 제공자 호출 없이 답변 거절
+  -> 근거 있음: 테스트용 또는 OpenAI LLM 제공자
+  -> 답변, 인용, 조회 기록, 지연·토큰·비용 추정치, 평가 이력
+
+정적 웹 데모
+  -> 빌드에 포함된 fixture만 사용
+  -> FastAPI / PostgreSQL / OpenAI와 분리
 ```
 
-`EmbeddingProvider`, `LLMProvider`, repository 구현을 분리해 기본 검증은 API key와 Docker 없이 통과하고, PostgreSQL/pgvector 또는 OpenAI는 환경 변수로만 켭니다.
+저장소와 외부 제공자 인터페이스를 분리해 기본 회귀 테스트는 네트워크와 Docker 없이 실행합니다. PostgreSQL 경로에서는 벡터 유사도 정렬 전에 workspace, 소유자, 공개 범위, 부서 교집합을 SQL `WHERE` 절로 제한합니다.
 
-## 구현 범위
+## 핵심 설계 판단
 
-| 영역 | 구현 내용 | 확인 방법 |
+### 1. 검색 후보 단계에서 권한 범위 제한
+
+애플리케이션에서 검색 결과를 받은 뒤 제거하는 대신, PostgreSQL 조회 단계에서 접근 가능한 문서만 벡터 정렬 대상으로 만듭니다. 인증 강제 모드에서는 요청 본문의 workspace·사용자·부서 값을 사용하지 않고 검증된 세션 값으로 치환합니다.
+
+- 구현: [PostgreSQL 저장소](app/repository.py), [인증 범위 적용](app/main.py), [인증 컨텍스트](app/auth.py)
+- 검증: [PostgreSQL 저장소 통합 테스트](tests/test_postgres_repository_integration.py), [권한 검색 테스트](tests/test_retrieval_permissions.py), [인증 게이트 테스트](tests/test_auth_gate.py). PostgreSQL 통합 테스트는 접근 가능한 문서 조회를 확인하며, 여러 권한 범위의 문서를 한 번에 저장한 뒤 SQL 결과에서 제외하는 부정 사례는 아직 직접 검증하지 않습니다.
+
+### 2. 근거가 없으면 생성 제공자를 호출하지 않음
+
+검색 결과에서 인용 후보를 만들 수 없으면 `insufficient_evidence`를 반환하고 답변 생성을 중단합니다. 근거가 있으면 문서 제목, 원문 위치, 인용문, 검색 점수를 답변과 함께 반환합니다.
+
+- 구현: [답변 서비스](app/answer.py), [검색 서비스](app/retrieval.py)
+- 검증: [답변 API 테스트](tests/test_answer_api.py), [검색 API 테스트](tests/test_api_retrieval.py)
+
+### 3. 외부 연동을 선택형 경로로 분리
+
+기본 실행은 테스트용 임베딩·LLM과 메모리 저장소를 사용합니다. `DATABASE_URL`, `EMBEDDING_PROVIDER=openai`, `LLM_PROVIDER=openai`가 지정된 경우에만 PostgreSQL 또는 OpenAI 어댑터를 선택합니다.
+
+- 구현: [런타임 구성](app/runtime.py), [제공자 어댑터](app/providers.py)
+- 검증: [저장소 선택 테스트](tests/test_runtime_storage.py), [제공자 선택 테스트](tests/test_provider_selection.py), [OpenAI 스모크 도구 테스트](tests/test_openai_live_smoke.py)
+
+### 4. 운영 수치는 측정값과 추정값을 구분
+
+지연 시간과 검색 건수는 실행 중 관찰한 값입니다. 토큰 수는 입력·출력 문자열 길이를 합산해 **4글자당 1토큰**으로 근사하고, 예상 비용은 이 추정 토큰 수에 코드에 정의한 모델별 정적 단가를 적용합니다. OpenAI 응답의 실제 usage나 청구 금액을 나타내지 않습니다.
+
+- 구현: [토큰·비용 추정](app/answer.py), [모델별 정적 단가](app/providers.py), [조회 기록](app/query_logs.py)
+- 검증: [운영 API 테스트](tests/test_operations_api.py), [조회 기록 테스트](tests/test_query_logs.py)
+
+### 5. 평가는 고정된 소규모 데이터로 재현
+
+평가 기능은 저장소에 포함된 3개 질문과 기대 문서 ID를 사용해 검색 적중 여부와 인용 포함 여부를 계산합니다. 일반적인 RAG 품질 벤치마크가 아니라 권한·검색·인용 경로의 회귀 검사용입니다.
+
+- 구현: [고정 평가 데이터와 실행기](app/evaluation.py), [평가 이력 저장](app/eval_runs.py)
+- 검증: [평가 API 테스트](tests/test_eval_api.py), [평가 이력 테스트](tests/test_eval_runs.py)
+
+## 검증 시나리오
+
+| 시나리오 | 관찰 기준 | 코드·테스트 근거 |
 |---|---|---|
-| Document API | 문서 등록, 조회, 수정, 삭제, chunk preview | FastAPI tests |
-| Retrieval | workspace/user/department/visibility 기반 권한 필터, score/top-k 제어 | retrieval tests, Search Console |
-| Answer | fake LLM 답변, 근거 부족 refusal, citation 반환 | answer API tests |
-| Provider 분리 | 테스트용 embedding·LLM 기본값, 선택형 OpenAI Responses·Embeddings adapter | 선택형 OpenAI 스모크 테스트 |
-| Persistence | in-memory 기본, PostgreSQL/pgvector 선택 repository | PostgreSQL integration smoke |
-| 인증 | 데모 사용자 정보, trusted header, OIDC JWT adapter, 세션 기반 검색·답변 | 인증·OIDC 테스트 |
-| 운영 지표 | 검색 기록, 지연 시간, token, 예상 비용, 검색 근거, 추이·상세 정보 | Operations API·UI |
-| 데모 UI | Search Console, Knowledge Library, Retrieval Lab, Operations | 프런트엔드 스모크 테스트·정적 빌드 |
-| 공개 데모 | `VITE_DEMO_MODE=static` 읽기 전용 테스트용 provider 빌드 | Vercel 배포 주소 |
+| 인증 우회 방지 | 인증 강제 모드에서 요청 본문의 권한 값보다 JWT 세션 범위를 우선 | [main.py](app/main.py), [test_auth_gate.py](tests/test_auth_gate.py) |
+| workspace 격리 | 세션과 다른 workspace 조회를 `403`으로 거절 | [auth.py](app/auth.py), [test_auth_gate.py](tests/test_auth_gate.py) |
+| 권한 범위 제한 | 메모리 경로에서 다른 workspace·부서·비공개 문서를 제외하고, PostgreSQL 경로에서 SQL 선필터 조회를 실행 | [repository.py](app/repository.py), [test_retrieval_permissions.py](tests/test_retrieval_permissions.py), [test_postgres_repository_integration.py](tests/test_postgres_repository_integration.py) |
+| 근거 부족 답변 거절 | 인용 후보가 없으면 LLM 제공자 호출 없이 거절 사유 반환 | [answer.py](app/answer.py), [test_answer_api.py](tests/test_answer_api.py) |
+| 제공자 선택 | 기본 테스트용 제공자와 명시적 OpenAI 제공자 구성을 분리 | [providers.py](app/providers.py), [test_provider_selection.py](tests/test_provider_selection.py) |
+| 조회 이력 | 지연 시간, 검색 결과, 추정 토큰·비용을 조회 상세와 집계 API에 기록 | [operations.py](app/operations.py), [test_operations_api.py](tests/test_operations_api.py) |
+| 고정 평가 | 3개 고정 질문으로 검색 적중과 인용 포함 여부를 반복 계산 | [evaluation.py](app/evaluation.py), [test_eval_api.py](tests/test_eval_api.py) |
+| 정적 공개 화면 | 정적 빌드가 fixture를 사용하며 `/api` 의존 없이 렌더링 | [데모 모드 설정](web/src/config/demoMode.ts), [정적 데모 검사](scripts/smoke-static-demo.mjs) |
 
-## 대표 시나리오
+## 재현 방법
 
-| 시나리오 | 확인 내용 | 결과 |
-|---|---|---|
-| 권한 기반 검색 | 다른 workspace/department/private 문서가 섞이지 않는지 | permission filter tests |
-| Citation 답변 | 답변이 retrieval 근거와 함께 반환되는지 | answer API, Search Console |
-| 근거 부족 refusal | 검색 근거가 부족할 때 답변을 꾸미지 않는지 | fake answer tests |
-| 검색 기록 | 지연 시간, token, 예상 비용, 검색된 chunk가 남는지 | metrics·trend·detail API |
-| 평가 도구 | 기준 질문으로 검색 적중과 출처 포함 비율을 계산하는지 | 평가 API와 테스트 |
-| 공개 정적 데모 | 공개 데모가 `/api` 없이 렌더링되는지 | `pnpm web:smoke:static`, Vercel 주소 |
-| OpenAI 선택 테스트 | 실제 OpenAI 경로가 명시적으로 선택했을 때만 켜지는지 | `RUN_OPENAI_LIVE_SMOKE=1` 수동 테스트 |
+### 기본 백엔드: Python 3.11 이상
 
-## 기술 선택과 문제 해결
-
-| 주제 | 고민한 점 | 적용 내용 | 확인 방법과 남은 과제 |
-|---|---|---|---|
-| 테스트용 provider 기본값 | 실제 provider를 기본값으로 두면 테스트가 비용·네트워크·시크릿에 의존함 | 테스트용 provider와 메모리 저장소를 기본값으로 사용 | API key 없는 로컬 테스트 |
-| PostgreSQL/pgvector 선택 실행 | 로컬 기본 경로와 DB 통합 경로를 섞으면 실패 원인 파악이 어려움 | 저장소 구현을 분리하고 DB 통합 테스트는 별도로 실행 | `RUN_POSTGRES_TESTS=1` |
-| 공개 데모 | 공개 화면이 실시간 API에 의존하면 배포와 비용 부담이 커짐 | 정적 예제 데이터로 읽기 전용 빌드 | `pnpm web:smoke:static`, Vercel 주소 |
-
-## 빠른 실행
-
-기본 로컬 테스트에는 API key와 Docker가 필요하지 않습니다.
+API key와 Docker가 필요하지 않습니다.
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
 pytest -q
-python3 -m compileall -q app
+python -m compileall -q app
+```
+
+로컬 API 실행:
+
+```bash
+source .venv/bin/activate
+uvicorn app.main:app --reload
+```
+
+기본 데모 모드는 인증을 강제하지 않고 요청의 권한 컨텍스트를 신뢰합니다. 인증 범위까지 확인하려면 [로컬 실행 문서](docs/runbooks/local-demo.md)의 OIDC 또는 신뢰 헤더 설정을 사용합니다.
+
+### 웹 콘솔: Node.js 20.19 이상, pnpm 11.1.3
+
+동적 API 빌드와 정적 fixture 빌드는 같은 `web/dist`를 사용하므로 아래 두 경로를 순서대로 각각 검증합니다. 정적 스모크 검사에는 Chrome 또는 Chromium이 필요하며 자동 탐지가 실패하면 `CHROME_PATH`를 지정합니다.
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
 pnpm check:package-manager
 pnpm web:smoke
 pnpm web:build
+```
+
+```bash
 pnpm web:build:static
 pnpm web:smoke:static
 ```
 
-개발 서버:
+### PostgreSQL/pgvector 선택 검증
 
 ```bash
-python3 -m pip install -e ".[dev]"
-uvicorn app.main:app --reload
-corepack enable pnpm
-pnpm install
-pnpm web:dev
+(
+  set -e
+  trap 'docker compose down' EXIT
+  docker compose config -q
+  docker compose up -d --wait postgres
+  export DATABASE_URL='postgresql://rag_app:rag_app_password@localhost:5432/enterprise_policy_rag'
+  RUN_POSTGRES_TESTS=1 pytest \
+    tests/test_postgres_repository_integration.py \
+    tests/test_postgres_runtime_integration.py -q
+)
 ```
 
-OIDC JWT provider는 명시적으로 켤 때만 사용합니다.
+이 경로는 호스트 포트 `5432`가 비어 있어야 하며, [PostgreSQL 초기 스키마](infra/postgres/init/001_schema.sql)를 적용한 실제 저장소 동작을 확인합니다.
+
+### OpenAI 선택 스모크 검사
+
+실제 네트워크 요청과 비용이 발생할 수 있으므로 기본 검증에는 포함하지 않습니다.
 
 ```bash
-AUTH_CONTEXT_PROVIDER=oidc_jwt \
-OIDC_ISSUER=https://idp.example.test/ \
-OIDC_AUDIENCE=enterprise-policy-rag \
-OIDC_HS256_SECRET=local-oidc-secret-with-32-bytes-min \
-uvicorn app.main:app --reload
+RUN_OPENAI_LIVE_SMOKE=1 \
+OPENAI_API_KEY='<redacted>' \
+OPENAI_MODEL='gpt-4.1-mini' \
+python3 scripts/openai_live_smoke.py
 ```
 
-OpenAI retrieval/answer 경로는 provider를 명시적으로 선택할 때만 활성화됩니다.
-
-```bash
-EMBEDDING_PROVIDER=openai \
-LLM_PROVIDER=openai \
-OPENAI_API_KEY=<redacted> \
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small \
-OPENAI_MODEL=gpt-4.1-mini \
-OPENAI_TIMEOUT_SECONDS=20 \
-uvicorn app.main:app --reload
-```
-
-## 테스트
-
-| 구분 | 명령 또는 결과 | 설명 |
-|---|---|---|
-| 기본 백엔드 | `pytest -q`, `python3 -m compileall -q app` | API key와 Docker 불필요 |
-| 프런트엔드 | `pnpm web:smoke`, `pnpm web:build` | API 연결 경로 스모크 테스트와 빌드 |
-| 정적 데모 | `pnpm web:build:static`, `pnpm web:smoke:static` | `/api` 호출이 없는 공개 데모 |
-| Compose 설정 | `docker compose config -q`, `docker compose -f docker-compose.yml -f docker-compose.low-resource.yml config -q` | PostgreSQL 선택 경로의 설정 확인 |
-| PostgreSQL 통합 | `RUN_POSTGRES_TESTS=1 ... pytest tests/test_postgres_repository_integration.py tests/test_postgres_runtime_integration.py -q` | Docker PostgreSQL과 `psycopg` 필요 |
-| OpenAI 스모크 테스트 | `RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py` | Git에서 제외된 `.env.local`을 사용하고 민감하지 않은 정보만 출력 |
-| 공개 데모 | https://enterprise-policy-rag.vercel.app | 정적 예제 데이터를 사용하는 읽기 전용 데모 |
-
-## 운영/배포
-
-| 항목 | 내용 | 확인 방법 |
-|---|---|---|
-| 기본 로컬 | 테스트용 provider와 메모리 저장소 | API key와 Docker가 필요 없는 테스트 명령 |
-| PostgreSQL 연동 | PostgreSQL/pgvector Compose와 통합 테스트 | `docker-compose*.yml`, PostgreSQL 테스트 |
-| OpenAI 연동 | OpenAI Responses·Embeddings adapter | 선택형 OpenAI 스모크 테스트 |
-| 공개 데모 | 읽기 전용 Vercel 빌드 | 정적 데모 테스트, Vercel 배포 주소 |
+이 스모크 검사는 테스트용 임베딩으로 검색한 근거를 OpenAI Responses 제공자에 전달하는 답변 경로만 확인합니다. OpenAI Embeddings API는 호출하지 않습니다.
 
 ## 담당 범위
 
-개인 프로젝트이며, 직접 구현하고 테스트한 범위는 다음과 같습니다.
+개인 프로젝트로 다음 영역을 직접 설계·구현·테스트했습니다.
 
-| 분야 | 구현 내용 | 확인 방법 |
-|---|---|---|
-| 검색 백엔드 | 권한 필터와 출처 후보 생성 | 권한 기반 검색 테스트 |
-| Provider 분리 | 테스트용 provider와 실제 provider를 분리 | 기본 테스트와 선택형 OpenAI 테스트 |
-| 운영 지표 | 검색 기록, 지연 시간, token, 예상 비용, 평가 | Operations API·UI |
-
-## 프로젝트 구조
-
-```text
-app/                 FastAPI 백엔드, provider와 저장소 구현 분리
-tests/               backend unit/API/integration tests
-web/                 React/Vite demo console
-scripts/             package manager 점검, 정적 데모·OpenAI 테스트 도구
-docs/                design, runbooks, portfolio docs
-docker-compose*.yml  선택형 PostgreSQL/pgvector 실행 환경
-```
-
-## 참고 문서
-
-| 순서 | 문서 | 내용 |
-|---|---|---|
-| 1 | [Portfolio One-Pager](docs/portfolio-one-pager.md) | 프로젝트 요약과 제한 사항 |
-| 2 | [API and Data Model](docs/api-data-model.md) | API 목록과 데이터 모델 |
-| 3 | [Local Demo Runbook](docs/runbooks/local-demo.md) | API key 없는 실행 |
-| 4 | [Static Demo Deploy Runbook](docs/runbooks/static-demo-deploy.md) | 읽기 전용 공개 데모 배포 |
-| 5 | [운영 보완 체크리스트](docs/runbooks/production-hardening-checklist.md) | 운영 전환 전에 보완할 항목 |
+- FastAPI 문서·검색·답변·운영 지표 API
+- 메모리 및 PostgreSQL/pgvector 저장소 분리
+- 권한 검색과 인증 세션 범위 적용
+- 테스트용 및 OpenAI 제공자 어댑터 분리
+- 답변 거절, 인용 정보, 조회 기록, 고정 평가 기능
+- React/Vite 웹 콘솔과 정적 fixture 데모 검증
 
 ## 제한 사항
 
-- 온프레미스 설치형 배포
-- 복잡한 멀티 에이전트 구성
-- 대규모 문서 파서 제품화
-- 처음부터 Kubernetes 운영
-- 실제 과금/결제 기능
-- OAuth redirect/session-cookie 운영 흐름
-- 정적 예제 데이터로 만든 공개 데모를 운영형 실시간 연동으로 설명하지 않음
+- `demo` 모드는 요청 권한 정보를 신뢰하고, `trusted_headers` 모드는 외부 인증 프록시가 헤더를 안전하게 생성·정리한다는 전제가 필요합니다.
+- 정적 화면, PostgreSQL, OpenAI Responses는 서로 분리된 선택 검증이며 기본 회귀 테스트가 이 외부 경로를 항상 실행하지는 않습니다.
+- 토큰·비용 추정과 3개 고정 평가 사례는 회귀 비교용입니다. 실제 청구액이나 일반적인 RAG 품질을 대표하지 않습니다.
+- PostgreSQL 경로에는 여러 권한 범위의 문서를 함께 저장한 뒤 SQL 결과에서 제외되는지 확인하는 부정 통합 사례가 아직 없습니다.
+- 대규모 문서 파싱, 멀티 리전, 자동 확장, 운영 모니터링은 구현·검증 범위에 포함하지 않습니다.
+
+## 관련 문서
+
+| 문서 | 내용 |
+|---|---|
+| [ADR-0001: 테스트용 제공자 우선](docs/adr/0001-fake-provider-first-retrieval-rag.md) | 외부 비용 없이 검색·답변 흐름을 먼저 검증한 이유 |
+| [API와 데이터 모델](docs/api-data-model.md) | 엔드포인트와 주요 데이터 구조 |
+| [로컬 실행](docs/runbooks/local-demo.md) | 기본 데모와 인증 모드 실행 절차 |
+| [정적 데모 배포](docs/runbooks/static-demo-deploy.md) | fixture 기반 읽기 전용 빌드와 배포 경계 |
