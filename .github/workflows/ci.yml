@@ -70,6 +70,7 @@ jobs:
       - name: Generate portfolio evidence JSON
         if: ${{ always() && hashFiles('artifacts/pytest.xml') != '' }}
         run: >-
+          SOURCE_DATE_EPOCH="$(git show -s --format=%ct "$GITHUB_SHA")"
           python scripts/portfolio_evidence.py artifacts/pytest.xml
           --output artifacts/portfolio-evidence.json
           --git-commit "$GITHUB_SHA"
