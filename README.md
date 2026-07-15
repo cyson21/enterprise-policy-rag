@@ -2,6 +2,10 @@
 
 Enterprise Policy RAG는 기업 내부 정책, 업무 매뉴얼, 보안 지침 문서를 권한 기반으로 검색하고, 근거가 있는 답변과 운영 지표를 제공하는 RAG 백엔드 프로젝트입니다.
 
+## 포트폴리오 링크
+
+- [웹 사례](https://cyson21.github.io/projects/enterprise-policy-rag/) · [공개 데모](https://enterprise-policy-rag.vercel.app/) · [전체 포트폴리오 PDF](https://github.com/cyson21/portfolio-hub/releases/download/latest/portfolio-complete.pdf) · [최신 이력서](https://github.com/cyson21/portfolio-hub/releases/download/latest/resume.pdf)
+
 ## Project Goal
 
 RAG를 단순 챗봇 기능으로 구현하는 것이 아니라, 실제 엔터프라이즈 백엔드에서 문제가 되는 권한, 근거, latency, token cost, 평가 가능성을 함께 다룹니다.
