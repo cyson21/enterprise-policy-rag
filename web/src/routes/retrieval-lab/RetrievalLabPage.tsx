@@ -14,6 +14,7 @@ import {
 const DEFAULT_LAB_QUERY = "보안 사고 증거 보존";
 
 export function RetrievalLabPage({ workspaceId, activePersona }: PageProps) {
+  // 실험 화면은 query/topK/scoreThreshold 상태를 분리해 한 번에 변경해도 조회 로직은 runLabRetrieval에서만 합쳐 처리한다.
   const [query, setQuery] = useState(DEFAULT_LAB_QUERY);
   const [topK, setTopK] = useState(5);
   const [scoreThreshold, setScoreThreshold] = useState(0);
@@ -21,6 +22,7 @@ export function RetrievalLabPage({ workspaceId, activePersona }: PageProps) {
   const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "empty">("idle");
 
+  // 실험값은 네트워크 호출 전 clamp로 정합화해 서버/UI의 파라미터 범위를 일치시킨다.
   async function runLabRetrieval(nextQuery = query) {
     setStatus("loading");
     const safeTopK = clampTopK(topK);
@@ -80,7 +82,7 @@ export function RetrievalLabPage({ workspaceId, activePersona }: PageProps) {
             점수 기준
             <input
               className="thresholdControl"
-              min="0"
+              min="-1"
               max="1"
               step="0.05"
               type="range"
@@ -161,6 +163,7 @@ export function RetrievalLabPage({ workspaceId, activePersona }: PageProps) {
 }
 
 function clampTopK(value: number) {
+  // top_k는 1~10 범위의 정수만 허용해 의도하지 않은 소수값을 정리한다.
   if (!Number.isFinite(value)) {
     return 5;
   }
@@ -168,8 +171,9 @@ function clampTopK(value: number) {
 }
 
 function clampScoreThreshold(value: number) {
+  // 정규화된 내적 기반 점수 임계값은 [-1,1]로 고정해 서버 검증 범위와 맞춘다.
   if (!Number.isFinite(value)) {
     return 0;
   }
-  return Math.min(1, Math.max(0, value));
+  return Math.min(1, Math.max(-1, value));
 }

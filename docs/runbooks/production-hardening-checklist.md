@@ -28,6 +28,9 @@ The current public deployment is a static read-only demo. It intentionally does 
 |---|---|---|
 | Secret rotation | Rotate any OpenAI key that was pasted into chat or shell history; keep only platform-managed secrets in deployment environments. | `.env.local` is ignored and tests do not require a key. |
 | Environment matrix | Define `development`, `preview`, `production` env variables for auth, DB, provider, CORS, rate limits, and logging. | Vercel static demo uses no backend env. |
+| Auth enforcement | Set `AUTH_CONTEXT_PROVIDER=trusted_headers` or `AUTH_CONTEXT_PROVIDER=oidc_jwt`, or set `RAG_REQUIRE_AUTH=1` before exposing any backend endpoint. | Default demo mode intentionally leaves auth non-enforced and logs a startup warning. |
+| OpenAI provider selection | Choose `EMBEDDING_PROVIDER=openai` and/or `LLM_PROVIDER=openai` only in environments with managed `OPENAI_API_KEY`; keep fake providers for no-secret CI. | OpenAI embedding and LLM adapters are env-gated and preserve the 64-dimension vector schema. |
+| OpenAI timeout | Tune `OPENAI_TIMEOUT_SECONDS` for the deployment tier and alert on repeated timeout failures. | Default OpenAI transport timeout is 20 seconds for Responses and Embeddings calls. |
 | Request size limit | Add body-size limits for document ingestion and admin update endpoints. | Not implemented; document payloads are prototype-sized. |
 | Rate limiting | Add per-user/workspace and admin endpoint rate limits, preferably backed by Redis or gateway middleware. | Not implemented in app process. |
 | CORS and trusted origins | Lock API CORS to known frontend origins and internal tooling domains. | Public demo is static; API CORS policy is not production-tuned. |
@@ -43,6 +46,7 @@ The current public deployment is a static read-only demo. It intentionally does 
 | Abuse and prompt safety | Add content policy checks, system prompt review, and injection-resistant citation handling. | Retrieval/citation flow is deterministic prototype logic. |
 | Deployment rollback | Document Vercel promotion/rollback and database rollback steps. | Static demo deployment is verified through Vercel Git integration. |
 | Load testing | Add representative ingestion/search/answer load tests and latency budgets. | Unit/API tests cover correctness, not load. |
+| OpenAI concurrency | Add async HTTP or bounded worker queues for high-load OpenAI traffic, with per-workspace concurrency limits. | Current transport uses synchronous standard-library HTTP calls with configurable timeout. |
 | Compliance review | Review PII, access logs, retention, and enterprise policy document handling. | Not part of portfolio scope. |
 
 ## Portfolio Closeout Criteria

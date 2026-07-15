@@ -42,5 +42,6 @@ DEMO_QUERY_LOGS = [
 
 
 def seed_demo_query_logs(services: PolicyRagServices) -> None:
+    # 초기 화면에서 메트릭과 최근 쿼리 목록이 비지 않도록 데모 로그를 사전 주입한다.
     for log in DEMO_QUERY_LOGS:
         services.query_log_repository.add_query_log(log)

@@ -1,11 +1,13 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 
+// 웹 명령어 진입점: dev/build/정적 데모 빌드/미리보기를 하나의 매퍼로 통합한다.
 const root = resolve(import.meta.dirname, "..");
 const webRoot = resolve(root, "web");
 const task = process.argv[2];
 const binExtension = process.platform === "win32" ? ".cmd" : "";
 
+// 정적 모드의 실제 실행 경로를 유지보수가 명확하도록 작업 단위를 분리한다.
 const tasks = {
   dev: () => run(webBin("vite"), ["--host", "127.0.0.1"], webRoot),
   build: async () => {

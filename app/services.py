@@ -41,6 +41,7 @@ from app.retrieval import RetrievalService
 
 
 class PolicyRagServices:
+    # 서비스는 라우트 요청과 도메인 규칙 사이의 조정자 역할을 하며, provider/저장소 경계를 일관되게 묶는다.
     def __init__(
         self,
         repository: PolicyRepository | None = None,
@@ -55,7 +56,22 @@ class PolicyRagServices:
         self.embedding_provider = embedding_provider or FakeEmbeddingProvider()
         self.llm_provider = llm_provider
 
+    def close(self) -> None:
+        seen: set[int] = set()
+        for component in (
+            self.repository,
+            self.query_log_repository,
+            self.eval_run_repository,
+        ):
+            if id(component) in seen:
+                continue
+            seen.add(id(component))
+            close = getattr(component, "close", None)
+            if callable(close):
+                close()
+
     def ingest_document(self, payload: DocumentCreate) -> DocumentIngestResponse:
+        # 업로드 즉시 chunking + embedding으로 검색에 필요한 형태만 저장해 검색 가능 상태로 만들고 응답한다.
         chunks = chunk_text(payload.content)
         embeddings = self.embedding_provider.embed_many([chunk.text for chunk in chunks])
         stored = self.repository.add_document(payload, chunks, embeddings)
@@ -66,6 +82,7 @@ class PolicyRagServices:
         )
 
     def list_documents(self, workspace_id: str) -> DocumentListResponse:
+        # list_documents는 read model 생성만 담당하고, 변경 동작 없이 집계만 정제해 반환한다.
         documents = [
             self._build_document_summary(document)
             for document in self.repository.list_documents(workspace_id)
@@ -104,6 +121,7 @@ class PolicyRagServices:
         existing_chunks = self.repository.list_document_chunks(workspace_id=workspace_id, document_id=document_id)
         content = payload.content
         if content is None:
+            # 부분 수정에서 content가 비면 기존 청크를 다시 합쳐서 재색인 입력을 만든다.
             content = "\n\n".join(chunk.text for chunk in existing_chunks) or " "
 
         replacement = DocumentCreate(
@@ -170,6 +188,7 @@ class PolicyRagServices:
         return AdminAuditLogsResponse(logs=self.repository.list_admin_audit_logs(workspace_id, limit=50))
 
     def retrieve(self, payload: RetrievalQuery) -> RetrievalResponse:
+        # 질의 요청은 즉시 서비스 내부 로그 객체를 먼저 남기고, 검색 결과와 연결해 추적 가능한 분석 단위를 만든다.
         started = perf_counter()
         service = RetrievalService(repository=self.repository, embedding_provider=self.embedding_provider)
         response = service.retrieve(payload)
@@ -182,13 +201,15 @@ class PolicyRagServices:
                 latency_ms=_elapsed_ms(started),
                 retrieved_count=len(response.results),
                 top_score=response.results[0].score if response.results else 0.0,
-                provider="fake",
+                # retrieval 단계의 provider는 실제 임베딩 provider 식별자를 기록한다.
+                provider=getattr(self.embedding_provider, "provider_name", "fake"),
             )
         )
         self.query_log_repository.add_retrieval_results(query_log.id, response.results)
         return response
 
     def answer(self, payload: AnswerQuery) -> AnswerResponse:
+        # 검색 결과를 바탕으로 근거 기반 답변을 구성하고, 쿼리 로그에 provider/토큰/지연값을 함께 기록한다.
         service = AnswerService(
             repository=self.repository,
             embedding_provider=self.embedding_provider,
@@ -237,6 +258,7 @@ class PolicyRagServices:
         )
 
     def _build_document_summary(self, document: StoredDocument) -> DocumentSummary:
+        # API 응답용 summary는 소스 문서+청크 개수를 즉시 계산해 list/detail에서 중복 쿼리 없이 쓰기 쉽도록 정리한다.
         chunks = self.repository.list_document_chunks(
             workspace_id=document.workspace_id,
             document_id=document.id,

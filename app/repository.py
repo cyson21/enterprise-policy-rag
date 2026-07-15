@@ -1,3 +1,9 @@
+"""문서 저장소 경계 모듈.
+
+도메인 서비스는 인터페이스를 통해 repository를 호출하고,
+구현체는 메모리/DB 영속 방식만 교체한다.
+"""
+
 from __future__ import annotations
 
 import json
@@ -14,6 +20,7 @@ from app.models import (
     StoredAdminAuditLog,
     StoredChunk,
     StoredDocument,
+    Visibility,
 )
 
 try:
@@ -35,6 +42,17 @@ class PolicyRepository(Protocol):
 
     def list_chunks(self, workspace_id: str) -> list[StoredChunk]:
         """Return retrieval-ready chunks for one workspace."""
+
+    def search_candidate_chunks(
+        self,
+        workspace_id: str,
+        query_embedding: list[float],
+        *,
+        owner_user_id: str,
+        department_ids: Sequence[str],
+        limit: int,
+    ) -> list[StoredChunk]:
+        """Return permission-filtered retrieval candidates ordered by vector similarity."""
 
     def list_documents(self, workspace_id: str) -> list[StoredDocument]:
         """Return documents for one workspace."""
@@ -65,7 +83,7 @@ class PolicyRepository(Protocol):
 
 
 class InMemoryPolicyRepository:
-    """Small repository used by the first retrieval slice and API tests."""
+    """테스트/데모에서 쓰는 인메모리 저장소 구현체."""
 
     def __init__(self) -> None:
         self._document_sequence = 0
@@ -81,6 +99,7 @@ class InMemoryPolicyRepository:
         chunks: Sequence[TextChunk],
         embeddings: Sequence[list[float]],
     ) -> StoredDocument:
+        # 문서와 임베딩 개수가 다르면 저장 상태를 만들지 못하게 해 검색 품질을 깨지 않는다.
         if len(chunks) != len(embeddings):
             raise ValueError("chunks and embeddings length mismatch")
 
@@ -119,9 +138,40 @@ class InMemoryPolicyRepository:
         return stored
 
     def list_chunks(self, workspace_id: str) -> list[StoredChunk]:
+        # 검색 경로에서 workspace 경계를 먼저 적용해 cross-workspace 노출을 원천 차단한다.
         return [chunk for chunk in self._chunks.values() if chunk.workspace_id == workspace_id]
 
+    def search_candidate_chunks(
+        self,
+        workspace_id: str,
+        query_embedding: list[float],
+        *,
+        owner_user_id: str,
+        department_ids: Sequence[str],
+        limit: int,
+    ) -> list[StoredChunk]:
+        departments = set(department_ids)
+        candidates = [
+            chunk
+            for chunk in self.list_chunks(workspace_id)
+            if (
+                chunk.owner_user_id == owner_user_id
+                or chunk.visibility == Visibility.PUBLIC
+                or (chunk.visibility == Visibility.DEPARTMENT and departments.intersection(chunk.department_ids))
+            )
+        ]
+        candidates.sort(
+            key=lambda chunk: (
+                -_similarity(query_embedding, chunk.embedding),
+                chunk.document_id,
+                chunk.chunk_index,
+                chunk.id,
+            )
+        )
+        return candidates[: max(0, limit)]
+
     def list_documents(self, workspace_id: str) -> list[StoredDocument]:
+        # 문서 목록도 workspace_id 기준으로만 노출해 관리자 UI가 서로 다른 조직 상태를 섞어보지 않게 한다.
         return [document for document in self._documents.values() if document.workspace_id == workspace_id]
 
     def get_document(self, workspace_id: str, document_id: str) -> StoredDocument | None:
@@ -131,6 +181,7 @@ class InMemoryPolicyRepository:
         return document
 
     def list_document_chunks(self, workspace_id: str, document_id: str) -> list[StoredChunk]:
+        # 문서 단위로 청크를 조회할 때 doc_id와 workspace_id를 모두 검사해 참조 경계를 유지한다.
         return [
             chunk
             for chunk in self._chunks.values()
@@ -144,6 +195,7 @@ class InMemoryPolicyRepository:
         chunks: Sequence[TextChunk],
         embeddings: Sequence[list[float]],
     ) -> StoredDocument | None:
+        # 기존 문서를 대체할 때는 기존 청크를 지우고 동일 인덱스 순서로 재생성해 추후 접근 제어 계산이 일관되게 돌아간다.
         if len(chunks) != len(embeddings):
             raise ValueError("chunks and embeddings length mismatch")
         existing = self.get_document(workspace_id=document.workspace_id, document_id=document_id)
@@ -187,6 +239,7 @@ class InMemoryPolicyRepository:
         return stored
 
     def delete_document(self, workspace_id: str, document_id: str) -> StoredDocument | None:
+        # 문서 삭제 시 청크도 같이 제거해 조회 경로에서 고아 청크를 만들지 않는다.
         existing = self.get_document(workspace_id=workspace_id, document_id=document_id)
         if existing is None:
             return None
@@ -221,11 +274,16 @@ class PostgresPolicyRepository:
     """PostgreSQL + pgvector repository for the retrieval core."""
 
     def __init__(self, dsn: str | None = None, connection: Any | None = None) -> None:
+        self._owns_connection = connection is None
         if connection is None:
             if psycopg is None:
                 raise RuntimeError("psycopg is required to use PostgresPolicyRepository")
             connection = psycopg.connect(dsn)
         self._connection = connection
+
+    def close(self) -> None:
+        if self._owns_connection and not self._connection.closed:
+            self._connection.close()
 
     def add_document(
         self,
@@ -233,6 +291,7 @@ class PostgresPolicyRepository:
         chunks: Sequence[TextChunk],
         embeddings: Sequence[list[float]],
     ) -> StoredDocument:
+        # DB 경로는 문서 본문과 벡터를 같은 흐름으로 넣어 검색 인덱스 일관성을 보장한다.
         if len(chunks) != len(embeddings):
             raise ValueError("chunks and embeddings length mismatch")
 
@@ -317,7 +376,9 @@ class PostgresPolicyRepository:
                     c.text,
                     c.embedding
                 FROM document_chunks c
-                JOIN documents d ON d.id = c.document_id
+                JOIN documents d
+                  ON d.id = c.document_id
+                 AND d.workspace_id = c.workspace_id
                 WHERE c.workspace_id = %s
                 ORDER BY c.document_id, c.chunk_index, c.id
                 """,
@@ -325,7 +386,57 @@ class PostgresPolicyRepository:
             )
             return [_chunk_from_row(row) for row in cursor.fetchall()]
 
+    def search_candidate_chunks(
+        self,
+        workspace_id: str,
+        query_embedding: list[float],
+        *,
+        owner_user_id: str,
+        department_ids: Sequence[str],
+        limit: int,
+    ) -> list[StoredChunk]:
+        with self._cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    c.id,
+                    c.document_id,
+                    c.workspace_id,
+                    d.title,
+                    d.source_uri,
+                    d.owner_user_id,
+                    d.department_ids,
+                    d.visibility,
+                    d.indexing_status,
+                    c.chunk_index,
+                    c.text,
+                    c.embedding
+                FROM document_chunks c
+                JOIN documents d
+                  ON d.id = c.document_id
+                 AND d.workspace_id = c.workspace_id
+                WHERE c.workspace_id = %s
+                  AND d.indexing_status = 'ready'
+                  AND (
+                    d.owner_user_id = %s
+                    OR d.visibility = 'public'
+                    OR (d.visibility = 'department' AND d.department_ids && %s::text[])
+                  )
+                ORDER BY c.embedding <=> %s::vector
+                LIMIT %s
+                """,
+                (
+                    workspace_id,
+                    owner_user_id,
+                    list(department_ids),
+                    _vector_literal(query_embedding),
+                    max(0, limit),
+                ),
+            )
+            return [_chunk_from_row(row) for row in cursor.fetchall()]
+
     def list_documents(self, workspace_id: str) -> list[StoredDocument]:
+        # 문서 조회 쿼리에서 chunk_count를 집계해 별도 count API 없이 summary를 즉시 구성한다.
         with self._cursor() as cursor:
             cursor.execute(
                 """
@@ -375,6 +486,7 @@ class PostgresPolicyRepository:
             return _document_from_row(row)
 
     def list_document_chunks(self, workspace_id: str, document_id: str) -> list[StoredChunk]:
+        # document_id 조회는 workspace 조건과 조합해 삭제/이동된 문서를 섞이지 않게 한다.
         with self._cursor() as cursor:
             cursor.execute(
                 """
@@ -392,7 +504,9 @@ class PostgresPolicyRepository:
                     c.text,
                     c.embedding
                 FROM document_chunks c
-                JOIN documents d ON d.id = c.document_id
+                JOIN documents d
+                  ON d.id = c.document_id
+                 AND d.workspace_id = c.workspace_id
                 WHERE c.workspace_id = %s AND c.document_id = %s
                 ORDER BY c.chunk_index, c.id
                 """,
@@ -407,6 +521,7 @@ class PostgresPolicyRepository:
         chunks: Sequence[TextChunk],
         embeddings: Sequence[list[float]],
     ) -> StoredDocument | None:
+        # 갱신은 기존 row를 안전하게 재작성하기 위해 삭제/삽입 순서를 명시적으로 분리한다.
         if len(chunks) != len(embeddings):
             raise ValueError("chunks and embeddings length mismatch")
         if self.get_document(workspace_id=document.workspace_id, document_id=document_id) is None:
@@ -484,6 +599,7 @@ class PostgresPolicyRepository:
         return stored
 
     def delete_document(self, workspace_id: str, document_id: str) -> StoredDocument | None:
+        # 삭제 전에 존재 여부를 다시 확인해 호출자가 존재하지 않는 리소스에 대해 일관된 반응을 받도록 한다.
         existing = self.get_document(workspace_id=workspace_id, document_id=document_id)
         if existing is None:
             return None
@@ -561,6 +677,7 @@ class PostgresPolicyRepository:
 
 
 def _document_from_row(row: dict[str, Any]) -> StoredDocument:
+    # DB row를 앱 모델로 변환할 때 타입 안전성/기본값을 한곳에서 통일한다.
     return StoredDocument(
         id=row["id"],
         workspace_id=row["workspace_id"],
@@ -575,6 +692,7 @@ def _document_from_row(row: dict[str, Any]) -> StoredDocument:
 
 
 def _chunk_from_row(row: dict[str, Any]) -> StoredChunk:
+    # pgvector 또는 텍스트 형태 임베딩을 내부 연산 형식으로 정규화한다.
     return StoredChunk(
         id=row["id"],
         document_id=row["document_id"],
@@ -606,10 +724,16 @@ def _audit_log_from_row(row: dict[str, Any]) -> StoredAdminAuditLog:
 
 
 def _vector_literal(values: Sequence[float]) -> str:
+    # pgvector 삽입용으로 값만으로도 안전하게 읽히는 array literal을 구성한다.
     return "[" + ",".join(str(float(value)) for value in values) + "]"
 
 
+def _similarity(left: Sequence[float], right: Sequence[float]) -> float:
+    return sum(a * b for a, b in zip(left, right))
+
+
 def _parse_vector(value: Any) -> list[float]:
+    # 벡터 저장소 타입이 list/tuple/문자열일 수 있어 공통 parse 루트를 둔다.
     if isinstance(value, list):
         return [float(item) for item in value]
     if isinstance(value, tuple):

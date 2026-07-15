@@ -26,6 +26,7 @@ import {
 } from "../../utils/display";
 
 export function OperationsPage({ workspaceId }: PageProps) {
+  // 지표 페이지는 여러 API를 병렬로 조회해 한 번의 렌더 사이클에서 화면을 갱신한다.
   const [summary, setSummary] = useState<MetricsSummary | null>(null);
   const [trend, setTrend] = useState<QueryTrendPoint[]>([]);
   const [queries, setQueries] = useState<RecentQuery[]>([]);
@@ -34,6 +35,7 @@ export function OperationsPage({ workspaceId }: PageProps) {
   const [topEvidence, setTopEvidence] = useState<TopEvidenceItem[]>([]);
   const [evalRun, setEvalRun] = useState<EvalRun | null>(null);
 
+  // 운영 지표는 Promise.all로 동시 로딩해 화면 깜빡임을 줄이고 집계 기준을 맞춘다.
   useEffect(() => {
     async function fetchOperations() {
       const [summaryResponse, trendResponse, queriesResponse, topEvidenceResponse, evalRunsResponse] = await Promise.all([
@@ -92,6 +94,7 @@ export function OperationsPage({ workspaceId }: PageProps) {
   };
   const screenshotMode =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("focus") : null;
+  // screenshot 모드에서는 상세/요약 탭이 화면 축약되어 캡처 대상만 보이게 분기된다.
   const screenshotFocus = screenshotMode === "query-detail";
   const screenshotSummary = screenshotMode === "mobile-summary";
 
@@ -324,5 +327,6 @@ export function OperationsPage({ workspaceId }: PageProps) {
 }
 
 function formatPercent(value: number) {
+  // 운영 지표는 0~1 범위의 비율을 퍼센트 문자열로 통일해 표시한다.
   return `${Math.round(value * 100)}%`;
 }

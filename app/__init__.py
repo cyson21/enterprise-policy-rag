@@ -1,1 +1,1 @@
-"""Enterprise Policy RAG retrieval core."""
+"""Enterprise Policy RAG backend application package."""

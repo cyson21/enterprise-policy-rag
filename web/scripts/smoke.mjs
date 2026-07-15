@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 
+// 필수 파일이 존재하는지 확인해 정적 데모 스크립트 실행 전 선검증한다.
 const requiredFiles = [
   "package.json",
   "index.html",
@@ -71,6 +72,7 @@ const requiredLabels = [
   "평가 리포트",
 ];
 
+// 누락 항목이 하나라도 있으면 CI/로컬 스크립트가 빠르게 실패하도록 수집한다.
 const failures = [];
 
 for (const file of requiredFiles) {
@@ -79,6 +81,7 @@ for (const file of requiredFiles) {
   }
 }
 
+// 파일 목록 검증 후 화면 라벨 존재 여부를 함께 검사해 번역/표기 누락을 잡는다.
 const searchable = requiredFiles
   .filter((file) => file.endsWith(".tsx") || file.endsWith(".ts") || file.endsWith(".css") || file.endsWith(".html"))
   .filter((file) => existsSync(resolve(root, file)))
@@ -91,6 +94,7 @@ for (const label of requiredLabels) {
   }
 }
 
+// 수집된 누락분은 에러로 종료해 smoke 스크립트의 실패 조건을 명시한다.
 if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);

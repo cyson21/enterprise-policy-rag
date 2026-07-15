@@ -5,6 +5,7 @@ export type Persona = {
   role: "employee" | "admin";
 };
 
+// 서버 응답(Persona API)과 프런트 내부 Persona 스키마를 분리해 유지.
 export type ApiPersona = {
   id: string;
   display_name: string;
@@ -12,6 +13,7 @@ export type ApiPersona = {
   role: "employee" | "admin";
 };
 
+// 정적 데모에서 공유할 워크스페이스 기본값.
 export const workspace = {
   id: "acme",
   name: "ACME Enterprise",
@@ -19,6 +21,7 @@ export const workspace = {
   provider: "fake",
 };
 
+// 데모 persona 샘플: UI 상호작용 검증과 접근제어 분기 재현에 사용한다.
 export const personas: Persona[] = [
   {
     id: "mina-security",
@@ -46,6 +49,7 @@ export const personas: Persona[] = [
   },
 ];
 
+// 서버 응답 필드명을 내부 타입으로 정규화해 화면 조합 로직과 맞춘다.
 export function normalizePersona(persona: ApiPersona): Persona {
   return {
     id: persona.id,

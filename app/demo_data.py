@@ -60,12 +60,13 @@ DEMO_DOCUMENTS = [
     ),
 ]
 
-
 def seed_demo_documents(services: PolicyRagServices) -> None:
+    # 데모 시작 시 기본 정책 문서를 미리 넣어 검색/정책 경계가 UI에서 바로 보이도록 한다.
     for document in DEMO_DOCUMENTS:
         services.ingest_document(document)
 
 
 def seed_demo_state(services: PolicyRagServices) -> None:
+    # 문서/로그 시드 둘 다 채워야 통계, 질의 이력, 운영 화면이 일관되게 표시된다.
     seed_demo_documents(services)
     seed_demo_query_logs(services)

@@ -24,13 +24,16 @@ class EvalRunRepository(Protocol):
 
 class InMemoryEvalRunRepository:
     def __init__(self) -> None:
+        # 메모리 기반에서는 최근 실행 이력을 실행 순서를 뒤집어 최신 우선으로 조회한다.
         self._runs: list[EvalRunResponse] = []
 
     def add_eval_run(self, run: EvalRunResponse) -> EvalRunResponse:
+        # 테스트 재현성 유지를 위해 수신한 run을 있는 그대로 저장해 반환한다.
         self._runs.append(run)
         return run
 
     def list_eval_runs(self, workspace_id: str, limit: int | None = None) -> list[EvalRunResponse]:
+        # 동일 워크스페이스 기준으로 조회하고, limit이 있으면 상위 항목만 잘라 낸다.
         runs = [run for run in reversed(self._runs) if run.workspace_id == workspace_id]
         if limit is None:
             return runs
@@ -39,13 +42,19 @@ class InMemoryEvalRunRepository:
 
 class PostgresEvalRunRepository:
     def __init__(self, dsn: str | None = None, connection: Any | None = None) -> None:
+        self._owns_connection = connection is None
         if connection is None:
             if psycopg is None:
                 raise RuntimeError("psycopg is required to use PostgresEvalRunRepository")
             connection = psycopg.connect(dsn)
         self._connection = connection
 
+    def close(self) -> None:
+        if self._owns_connection and not self._connection.closed:
+            self._connection.close()
+
     def add_eval_run(self, run: EvalRunResponse) -> EvalRunResponse:
+        # 평가 실행 결과는 eval_runs와 케이스를 분리 저장해 분석 쿼리의 조회 범위를 최소화한다.
         with self._cursor() as cursor:
             cursor.execute(
                 """
@@ -102,6 +111,7 @@ class PostgresEvalRunRepository:
         return run
 
     def list_eval_runs(self, workspace_id: str, limit: int | None = None) -> list[EvalRunResponse]:
+        # 필요 시 limit를 붙여 최신 케이스 위주로 읽고, case 테이블은 run별로 보강 로드한다.
         params: tuple[object, ...]
         limit_clause = ""
         if limit is None:
@@ -147,10 +157,12 @@ class PostgresEvalRunRepository:
 
 
 def utc_now() -> str:
+    # 운영/데모 시나리오에서 동일 형식 타임스탬프를 사용하도록 초 단위로 truncate 한다.
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
 def _eval_run_from_row(row: dict[str, Any]) -> EvalRunResponse:
+    # DB row와 Pydantic 모델 간 타입 정합성(특히 datetime/string) 차이를 보정한다.
     created_at = row["created_at"]
     if isinstance(created_at, datetime):
         created_at = created_at.isoformat()
@@ -168,6 +180,7 @@ def _eval_run_from_row(row: dict[str, Any]) -> EvalRunResponse:
 
 
 def _eval_case_from_row(row: dict[str, Any]) -> EvalCaseResult:
+    # 케이스 결과의 배열 필드는 null-safe하게 list로 정규화한다.
     return EvalCaseResult(
         case_id=row["case_id"],
         question=row["question"],
@@ -181,4 +194,5 @@ def _eval_case_from_row(row: dict[str, Any]) -> EvalCaseResult:
 
 
 def _list(value: Sequence[str] | None) -> list[str]:
+    # DB driver가 NULL을 None으로 전달해도 타입 안정성을 유지한다.
     return list(value or [])

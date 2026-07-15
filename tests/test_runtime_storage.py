@@ -1,6 +1,13 @@
+# 런타임 DI 테스트: DATABASE_URL 존재 유무에 따른 저장소 교체를 검증한다.
+from typing import get_type_hints
+
+import pytest
+
 from app.query_logs import InMemoryQueryLogRepository
+from app.providers import OpenAIEmbeddingProvider
 from app.repository import InMemoryPolicyRepository
 from app.eval_runs import InMemoryEvalRunRepository
+from app.services import PolicyRagServices
 
 
 def test_build_services_from_env_uses_in_memory_repositories_without_database_url(monkeypatch):
@@ -13,6 +20,23 @@ def test_build_services_from_env_uses_in_memory_repositories_without_database_ur
     assert isinstance(services.repository, InMemoryPolicyRepository)
     assert isinstance(services.query_log_repository, InMemoryQueryLogRepository)
     assert isinstance(services.eval_run_repository, InMemoryEvalRunRepository)
+
+
+def test_build_services_from_env_injects_embedding_provider(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    from app.runtime import build_services_from_env
+
+    services = build_services_from_env(
+        {
+            "EMBEDDING_PROVIDER": "openai",
+            "OPENAI_API_KEY": "sk-test",
+            "OPENAI_EMBEDDING_MODEL": "text-embedding-test",
+        }
+    )
+
+    assert isinstance(services.embedding_provider, OpenAIEmbeddingProvider)
+    assert services.embedding_provider.model == "text-embedding-test"
 
 
 def test_build_services_from_env_uses_postgres_repositories_with_database_url(monkeypatch):
@@ -47,3 +71,56 @@ def test_build_services_from_env_uses_postgres_repositories_with_database_url(mo
         "query_log_dsn": "postgresql://example/app",
         "eval_run_dsn": "postgresql://example/app",
     }
+
+
+def test_services_close_each_shared_runtime_component_once():
+    class Closable:
+        def __init__(self) -> None:
+            self.close_count = 0
+
+        def close(self) -> None:
+            self.close_count += 1
+
+    shared = Closable()
+    separate = Closable()
+    services = PolicyRagServices(
+        repository=shared,
+        query_log_repository=shared,
+        eval_run_repository=separate,
+    )
+
+    services.close()
+
+    assert shared.close_count == 1
+    assert separate.close_count == 1
+
+
+@pytest.mark.asyncio
+async def test_app_lifespan_closes_runtime_services_once(monkeypatch):
+    class RecordingServices:
+        def __init__(self) -> None:
+            self.close_count = 0
+
+        def close(self) -> None:
+            self.close_count += 1
+
+    services = RecordingServices()
+
+    import app.main as main
+
+    monkeypatch.setattr(main, "build_services_from_env", lambda: services)
+    app = main.create_app(seed_demo=False)
+
+    async with app.router.lifespan_context(app):
+        assert services.close_count == 0
+
+    assert services.close_count == 1
+
+
+def test_route_annotations_resolve_from_module_scope():
+    import app.main as main
+
+    for route in main.app.routes:
+        endpoint = getattr(route, "endpoint", None)
+        if endpoint is not None:
+            get_type_hints(endpoint)

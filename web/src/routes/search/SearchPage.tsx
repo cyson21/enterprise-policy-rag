@@ -16,12 +16,14 @@ import {
 const DEFAULT_QUERY = "보안 사고 발생 시 누구에게 알려야 해?";
 
 export function SearchPage({ workspaceId, activePersona }: PageProps) {
+  // 검색 입력값, 조회 결과, 답변, 상세 선택 상태를 분리해 렌더 분기와 재요청 로직을 독립 관리한다.
   const [query, setQuery] = useState(DEFAULT_QUERY);
   const [retrieval, setRetrieval] = useState<RetrievalResult[]>([]);
   const [answer, setAnswer] = useState<AnswerResponse | null>(null);
   const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "empty">("idle");
 
+  // 검색/답변은 동일 query 기준으로 병렬 호출해 응답 갱신 타이밍이 맞도록 맞춘다.
   async function runSearch(nextQuery = query) {
     setStatus("loading");
     const [response, answerResponse] = await Promise.all([
@@ -50,6 +52,7 @@ export function SearchPage({ workspaceId, activePersona }: PageProps) {
     void runSearch(DEFAULT_QUERY);
   }, [activePersona.id, workspaceId]);
 
+  // 상세 패널은 현재 선택 chunk 기준, 없으면 첫 번째 결과를 fallback한다.
   const selectedResult = useMemo(
     () => retrieval.find((result) => result.chunk_id === selectedChunkId) ?? retrieval[0],
     [retrieval, selectedChunkId],
