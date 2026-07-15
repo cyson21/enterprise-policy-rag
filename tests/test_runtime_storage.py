@@ -1,4 +1,6 @@
 # 런타임 DI 테스트: DATABASE_URL 존재 유무에 따른 저장소 교체를 검증한다.
+import pytest
+
 from app.query_logs import InMemoryQueryLogRepository
 from app.providers import OpenAIEmbeddingProvider
 from app.repository import InMemoryPolicyRepository
@@ -89,3 +91,25 @@ def test_services_close_each_shared_runtime_component_once():
 
     assert shared.close_count == 1
     assert separate.close_count == 1
+
+
+@pytest.mark.asyncio
+async def test_app_lifespan_closes_runtime_services_once(monkeypatch):
+    class RecordingServices:
+        def __init__(self) -> None:
+            self.close_count = 0
+
+        def close(self) -> None:
+            self.close_count += 1
+
+    services = RecordingServices()
+
+    import app.main as main
+
+    monkeypatch.setattr(main, "build_services_from_env", lambda: services)
+    app = main.create_app(seed_demo=False)
+
+    async with app.router.lifespan_context(app):
+        assert services.close_count == 0
+
+    assert services.close_count == 1

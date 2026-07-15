@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import Mapping
+from contextlib import asynccontextmanager
 from typing import Any
 
 from pydantic import ValidationError
@@ -28,9 +29,12 @@ def create_app(seed_demo: bool = True, require_auth: bool | None = None) -> Any:
     try:
         from fastapi import FastAPI, HTTPException, Request
 
-        app = FastAPI(title="Enterprise Policy RAG", version="0.1.0")
+        app = FastAPI(
+            title="Enterprise Policy RAG",
+            version="0.1.0",
+            lifespan=_services_lifespan(services),
+        )
         app.state.services = services
-        app.add_event_handler("shutdown", services.close)
         _configure_cors(app, os.environ)
 
         def guard_workspace(headers: Any, requested_workspace_id: str | None) -> str | None:
@@ -474,8 +478,20 @@ def _create_starlette_fallback(services: Any, auth_provider: Any, require_auth: 
             Route("/answer", answer, methods=["POST"]),
             Route("/auth/retrieve", auth_retrieve, methods=["POST"]),
             Route("/auth/answer", auth_answer, methods=["POST"]),
-        ]
+        ],
+        lifespan=_services_lifespan(services),
     )
+
+
+def _services_lifespan(services: Any) -> Any:
+    @asynccontextmanager
+    async def lifespan(_app: Any) -> Any:
+        try:
+            yield
+        finally:
+            services.close()
+
+    return lifespan
 
 
 def _resolve_require_auth(environ: Mapping[str, str]) -> bool:
