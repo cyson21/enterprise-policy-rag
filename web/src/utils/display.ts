@@ -5,6 +5,7 @@ const departmentLabels: Record<string, string> = {
   platform: "플랫폼",
 };
 
+// 표시용 텍스트 사전은 API 영문 id를 운영 화면에서 읽기 쉬운 형태로 변환한다.
 const userLabels: Record<string, string> = {
   "mina-security": "김민아",
   "joon-finance": "박준",
@@ -19,6 +20,7 @@ const documentLabels: Record<string, string> = {
   "Executive Access Exception": "임원 접근 예외 정책",
 };
 
+// 화면 표시 레이블이 바뀌어도 매핑을 통해 일괄 관리한다.
 const documentIdLabels: Record<string, string> = {
   doc_1: "원격 접속 정책",
   doc_2: "보안 사고 대응 매뉴얼",
@@ -33,6 +35,7 @@ const queryLabels: Record<string, string> = {
   "meal reimbursement receipt": "식대 정산 영수증",
 };
 
+// workspace/environment/provider/auth_mode 값은 영문 코드에서 한국어 라벨로 매핑한다.
 export function formatWorkspaceName(value: string) {
   return value === "ACME Enterprise" ? "ACME 엔터프라이즈" : value;
 }
@@ -157,5 +160,6 @@ export function formatRefusalReason(value: string | null | undefined) {
 }
 
 export function formatSourceUri(value: string | null | undefined) {
+  // 백엔드에 원본 URI가 없을 때도 사용자에게 빈칸이 아닌 기본 문구를 보여주기 위한 안전장치.
   return value ?? "로컬 문서";
 }

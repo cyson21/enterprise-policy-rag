@@ -9,6 +9,7 @@ from app.retrieval import RetrievalService
 
 
 class AnswerService:
+    # 검색과 생성형 응답의 결합 지점으로, retrieval 결과를 answer 스냅샷으로 고정하고 토큰/지연 지표를 계산한다.
     def __init__(
         self,
         repository: PolicyRepository,
@@ -21,6 +22,7 @@ class AnswerService:
 
     def answer(self, query: AnswerQuery) -> AnswerResponse:
         started = perf_counter()
+        # 답변 계산 전에 retrieval 단계만 먼저 수행해 근거가 없는 상태를 명확히 감지한다.
         retrieval = RetrievalService(
             repository=self.repository,
             embedding_provider=self.embedding_provider,
@@ -49,6 +51,7 @@ class AnswerService:
         ]
 
         if not citations:
+            # 근거가 없으면 provider 호출 없이 refusal_reason으로 일관된 실패 응답을 반환한다.
             return AnswerResponse(
                 query=query.query,
                 answer=None,
@@ -62,21 +65,32 @@ class AnswerService:
             )
 
         prompt = _build_prompt(query.query, citations)
+        # answer 생성은 고정된 prompt 포맷을 사용해 근거-문항 연결을 유지한다.
         answer_text = self.llm_provider.complete(prompt)
+        token_count = _estimate_tokens(prompt, answer_text)
         return AnswerResponse(
             query=query.query,
             answer=answer_text,
             citations=citations,
             refusal_reason=None,
             provider=self.llm_provider.provider_name,
-            token_count=_estimate_tokens(prompt, answer_text),
-            estimated_cost_usd=0.0,
+            token_count=token_count,
+            # 실제 호출이 일어난 답변 경로에서만 provider 단가 기반 비용을 추정한다.
+            estimated_cost_usd=self._estimate_cost_usd(token_count),
             latency_ms=_elapsed_ms(started),
             retrieved_count=len(citations),
         )
 
+    def _estimate_cost_usd(self, token_count: int) -> float:
+        # provider가 비용 추정을 제공하면 사용하고, 없으면 비용을 0으로 둔다.
+        estimator = getattr(self.llm_provider, "estimate_cost_usd", None)
+        if estimator is None:
+            return 0.0
+        return round(float(estimator(token_count)), 6)
+
 
 def _build_prompt(query: str, citations: list[AnswerCitation]) -> str:
+    # 증거 목록을 prompt의 Evidence 블록으로 전달해 LLM이 입력 사실 범위를 벗어나지 않게 유도한다.
     evidence = "\n".join(f"- {citation.quote}" for citation in citations)
     return f"Question: {query}\nEvidence:\n{evidence}\nAnswer with cited evidence only."
 

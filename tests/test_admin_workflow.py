@@ -1,3 +1,4 @@
+# 관리자 워크플로우 테스트: 문서 수정/삭제 시 권한 검증과 감사 로그 반영을 확인한다.
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -24,6 +25,7 @@ EMPLOYEE_HEADERS = {
 async def ingest_document(client: AsyncClient) -> str:
     response = await client.post(
         "/documents",
+        headers=ADMIN_HEADERS,
         json={
             "workspace_id": "acme",
             "title": "Draft VPN Policy",

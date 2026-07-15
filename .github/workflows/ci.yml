@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest with PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: enterprise_policy_rag
+          POSTGRES_USER: rag_app
+          POSTGRES_PASSWORD: rag_app_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rag_app -d enterprise_policy_rag"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://rag_app:rag_app_password@127.0.0.1:5432/enterprise_policy_rag
+      RUN_POSTGRES_TESTS: "1"
+      RUN_OPENAI_LIVE_SMOKE: "0"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Initialize PostgreSQL schema
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          import psycopg
+
+          schema = Path("infra/postgres/init/001_schema.sql").read_text(encoding="utf-8")
+          with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as connection:
+              connection.execute(schema)
+          PY
+
+      - name: Prepare artifact directory
+        run: mkdir -p artifacts
+
+      - name: Run full pytest suite
+        run: python -m pytest -q --junitxml=artifacts/pytest.xml
+
+      - name: Generate portfolio evidence JSON
+        if: ${{ always() && hashFiles('artifacts/pytest.xml') != '' }}
+        run: >-
+          SOURCE_DATE_EPOCH="$(git show -s --format=%ct "$GITHUB_SHA")"
+          python scripts/portfolio_evidence.py artifacts/pytest.xml
+          --output artifacts/portfolio-evidence.json
+          --git-commit "$GITHUB_SHA"
+          --scope "full pytest; PostgreSQL+pgvector enabled; OpenAI live smoke opt-in"
+
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: portfolio-verification-${{ github.sha }}
+          path: |
+            artifacts/pytest.xml
+            artifacts/portfolio-evidence.json
+          if-no-files-found: error

@@ -1,3 +1,4 @@
+# 페르소나 API 테스트: 기본 데모 사용자 목록과 ID/권한 메타데이터 제공을 확인한다.
 import pytest
 from httpx import ASGITransport, AsyncClient
 

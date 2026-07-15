@@ -4,6 +4,8 @@
 
 Enterprise Policy RAG는 기업 내부 정책, 업무 매뉴얼, 보안 지침을 권한 기반으로 검색하고 근거 있는 답변과 운영 지표를 제공하는 RAG 백엔드와 데모 콘솔입니다. 포트폴리오 화면은 한국어 인터페이스로 구성했고, 엔터프라이즈 AI 시스템에서 중요한 권한, 근거, provider 분리, 평가, 지연 시간/비용 가시성, 재현 가능한 로컬 검증을 보여줍니다.
 
+재개 기준: public 데모는 static fixture 중심으로 운영하고, 운영형 인증/실시간 연동 및 OpenAI 라이브 경로는 별도 경로에서만 opt-in으로 다룹니다.
+
 ## What It Shows
 
 - Policy document ingestion with deterministic chunking
@@ -65,13 +67,14 @@ https://github.com/cyson21/enterprise-policy-rag
 ## Current Boundaries
 
 - No OpenAI API call is required.
-- The OpenAI live transport and live smoke are opt-in and not part of default local verification.
+- The OpenAI live transport and live smoke are explicit opt-in paths and are not part of default local verification.
 - The static public demo mode does not call `/api`; it uses read-only fake-provider fixtures.
 - On-premises deployment is outside the first scope.
 - PostgreSQL document and query log repositories are verified with low-resource Colima; the default app path remains in-memory unless `DATABASE_URL` is set.
 - `DATABASE_URL` switches the runtime to PostgreSQL-backed document, query log, and eval repositories.
 - OAuth redirect/session-cookie flow is not included. The auth/SSO boundary, OIDC JWT adapter, admin document workflow API, and Knowledge Library admin controls are implemented.
+- Demo output is intentionally fixture/static-first, while live auth/retrieval/LLM verification is separately scoped and not presented as 운영 전환 완료 상태.
 
 ## Closeout
 
-Project 02 portfolio scope is complete. A real production SaaS rollout would start from `docs/runbooks/production-hardening-checklist.md`.
+Project 02 portfolio documentation is complete for the current demo scope. Production-style rollout is not fully claimed; remaining items are tracked in `docs/runbooks/production-hardening-checklist.md`.

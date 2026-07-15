@@ -5,6 +5,7 @@ import { OperationsPage } from "../routes/operations/OperationsPage";
 import { RetrievalLabPage } from "../routes/retrieval-lab/RetrievalLabPage";
 import { SearchPage } from "../routes/search/SearchPage";
 
+// 라우트 메타데이터는 메뉴 라벨, 설명, 렌더 컴포넌트를 한 파일에서 관리한다.
 export const routes = [
   {
     id: "search",

@@ -43,6 +43,7 @@ GOLDEN_CASES = [
 
 
 def run_eval(services: PolicyRagServices, request: EvalRunRequest) -> EvalRunResponse:
+    # 평가 실행은 고정 golden 케이스를 순회해 실제 서비스 경로(검색+답변)를 통과한 뒤 점수로 집계한다.
     cases = [_run_case(services, request.workspace_id, case) for case in GOLDEN_CASES]
     retrieval_hit_rate = _rate(case.retrieval_hit for case in cases)
     citation_coverage = _rate(case.citation_covered for case in cases)
@@ -62,6 +63,7 @@ def run_eval(services: PolicyRagServices, request: EvalRunRequest) -> EvalRunRes
 
 
 def list_eval_runs(services: PolicyRagServices, workspace_id: str) -> EvalRunsResponse:
+    # 평가 이력은 최신 20건 기준으로 노출하며, 없을 경우 즉시 하나를 생성해 데모 화면을 비워두지 않는다.
     runs = services.eval_run_repository.list_eval_runs(workspace_id, limit=20)
     if not runs:
         runs = [run_eval(services, EvalRunRequest(workspace_id=workspace_id))]
@@ -96,10 +98,12 @@ def _run_case(services: PolicyRagServices, workspace_id: str, case: GoldenCase) 
 
 
 def _contains_expected(actual: list[str], expected: list[str]) -> bool:
+    # 예상 문서 집합과 실제 검색 문서를 부분 집합 관점으로 비교해 one-hot 판정의 민감도를 낮춘다.
     return bool(set(actual).intersection(expected))
 
 
 def _rate(values: object) -> float:
+    # 비어 있는 데이터셋에서 0/0 분기 없이 0.0으로 고정한다.
     items = list(values)
     if not items:
         return 0.0

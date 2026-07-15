@@ -1,204 +1,103 @@
 # Enterprise Policy RAG
 
-Enterprise Policy RAG는 기업 내부 정책, 업무 매뉴얼, 보안 지침 문서를 권한 기반으로 검색하고, 근거가 있는 답변과 운영 지표를 제공하는 RAG 백엔드 프로젝트입니다.
+사용자·부서·workspace 권한으로 정책 문서 검색 후보를 제한하고, 근거가 있을 때만 답변과 citation을 생성하는 FastAPI 프로젝트입니다. [웹 사례](https://cyson21.github.io/projects/enterprise-policy-rag/) · [공개 데모](https://enterprise-policy-rag.vercel.app/)
 
 ## 포트폴리오 링크
 
 - [웹 사례](https://cyson21.github.io/projects/enterprise-policy-rag/) · [공개 데모](https://enterprise-policy-rag.vercel.app/) · [전체 포트폴리오 PDF](https://github.com/cyson21/portfolio-hub/releases/download/latest/portfolio-complete.pdf) · [최신 이력서](https://github.com/cyson21/portfolio-hub/releases/download/latest/resume.pdf)
 
-## Project Goal
+## 문제
 
-RAG를 단순 챗봇 기능으로 구현하는 것이 아니라, 실제 엔터프라이즈 백엔드에서 문제가 되는 권한, 근거, latency, token cost, 평가 가능성을 함께 다룹니다.
+검색 후 애플리케이션에서 권한 없는 문서를 제거하면 이미 민감한 후보가 검색 계층을 통과합니다. 또한 근거가 없는 질문도 LLM에 전달하면 그럴듯한 답변이 생성됩니다. 권한 범위를 retrieval 전에 적용하고 evidence 부족을 명시적으로 거절해야 합니다.
 
-1차 범위에서는 온프레미스 설치형 배포를 제외하고, 로컬 Docker Compose로 재현 가능한 SaaS형 백엔드와 포트폴리오 시연용 운영 화면을 함께 만듭니다.
-
-## MVP Scope
-
-| 영역 | 구현 목표 |
-|---|---|
-| Document Ingestion | Markdown/TXT 문서 등록, chunking, metadata 저장 |
-| Embedding Store | PostgreSQL + pgvector 기반 chunk vector 저장 |
-| Retrieval | workspace, user, department, visibility 기반 권한 필터 검색 |
-| Answer Generation | fake LLM provider 우선, 이후 OpenAI adapter 추가 |
-| Citation | 답변에 사용된 chunk와 source document 반환 |
-| Observability | request latency, token usage, estimated cost, retrieved chunks 기록 |
-| Eval | golden question set 기반 retrieval hit와 citation coverage 측정 |
-
-## Non-Goals
-
-- 온프레미스 설치형 배포
-- 처음부터 복잡한 multi-agent workflow
-- 대규모 문서 파서 제품화
-- 실제 결제/과금 시스템
-- Kubernetes 운영 자동화
-
-## Planned Stack
-
-| 영역 | 후보 |
-|---|---|
-| Backend | Python, FastAPI |
-| Frontend | React, TypeScript, Vite |
-| Package Manager | pnpm workspace |
-| DB | PostgreSQL, pgvector |
-| Worker | FastAPI background task 또는 RQ/Celery 후순위 검토 |
-| Cache/Queue | Redis |
-| LLM | fake provider first, OpenAI adapter later |
-| Runtime | Docker Compose |
-| Test | pytest, API integration tests, eval fixtures |
-
-## First Milestone
+## 설계
 
 ```text
-문서 등록
-→ chunk 저장
-→ fake embedding 기반 검색
-→ 권한 필터 적용
-→ retrieval-only API 응답
-→ 테스트와 project tracking 기록
+Auth context -> FastAPI
+             -> memory repository or PostgreSQL/pgvector
+                -> workspace/owner/public/department SQL prefilter
+                -> vector ranking
+             -> no evidence: reject without provider call
+             -> evidence: fake or OpenAI provider -> answer + citations
+             -> query log + latency + estimated token/cost + eval history
+Static demo  -> bundled fixtures only; backend/database/provider와 분리
 ```
 
-실제 LLM API 연결은 후순위입니다. 초기 구조는 `LLMProvider`와 `EmbeddingProvider`를 분리해 API key 없이도 테스트와 CI가 통과하도록 설계합니다.
+- 기본 실행은 메모리 저장소와 결정론적 embedding·LLM을 사용해 네트워크 없이 회귀를 재현합니다.
+- PostgreSQL 경로는 vector 정렬 전에 접근 범위를 SQL `WHERE` 절로 제한합니다.
+- 인증 강제 모드는 요청 본문의 권한 값 대신 검증된 session scope를 사용합니다.
 
-## Current Implementation
+## 실패 조건
 
-현재 구현된 단위는 backend retrieval core prototype, Phase 1A frontend shell, Phase 1B live Search Console, Phase 1C Knowledge Library API/UI, Phase 2 fake answer layer, Phase 3 fake eval runner, query log 기반 Operations API, top evidence persistence, eval persistence, Operations query trend/detail, opt-in OpenAI Responses API transport, controlled live OpenAI smoke, production auth/SSO boundary, OIDC JWT auth adapter, admin document workflow API, Knowledge Library admin UI controls, 한국어 데모 UI, 최신 screenshot assets, production hardening checklist입니다.
-
-- FastAPI application skeleton: `GET /health`, `POST /documents`, `GET /documents`, `GET /documents/{document_id}`, `PATCH /admin/documents/{document_id}`, `DELETE /admin/documents/{document_id}`, `GET /admin/audit-logs`, `POST /retrieve`, `POST /answer`, `GET /auth/session`, `POST /auth/retrieve`, `POST /auth/answer`, `POST /eval-runs`, `GET /eval-runs`, `GET /metrics/summary`, `GET /metrics/trend`, `GET /queries/recent`, `GET /queries/{query_id}`, `GET /evidence/top`
-- Demo foundation API: `GET /workspaces/current`, `GET /personas`
-- Auth/SSO boundary: default demo auth context, opt-in trusted header provider, opt-in OIDC JWT provider, session-bound retrieval/answer endpoints
-- UI-ready retrieval response: rank, score, visibility, department ids, access reason
-- Knowledge Library response: document metadata, chunk count, chunk preview, embedding dimensions
-- Demo documents: Remote Access, Security Incident, Finance Reimbursement, Executive Access
-- PostgreSQL + pgvector compose: `docker-compose.yml`
-- Low-resource PostgreSQL compose override: `docker-compose.low-resource.yml`
-- Schema: workspace, document, document chunk, query log, retrieval result, answer, citation, eval run, eval case result, admin audit log, pgvector embedding column
-- Repository implementations: in-memory default, optional `PostgresPolicyRepository`, optional `PostgresQueryLogRepository`
-- Runtime storage selection: no `DATABASE_URL` uses in-memory repositories; `DATABASE_URL` uses PostgreSQL repositories for documents, query logs, and eval runs
-- Provider boundary: `EmbeddingProvider`, `LLMProvider`, deterministic `FakeEmbeddingProvider`, deterministic `FakeLLMProvider`, env-gated `OpenAILLMProvider`
-- LLM provider selection: default `LLM_PROVIDER=fake`; `LLM_PROVIDER=openai` requires `OPENAI_API_KEY` and uses a standard-library OpenAI Responses API transport outside default tests
-- Controlled live OpenAI smoke: `RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py` uses ignored `.env.local` and reports only safe metadata
-- Local retrieval path: in-memory repository + fake embeddings
-- Local answer path: retrieval evidence + fake LLM provider + citations + refusal on insufficient evidence
-- Permission filter: same workspace, public visibility, owner access, department intersection
-- Frontend shell: React/Vite source scaffold under `web/`
-- UI routes: 검색 콘솔, 지식 라이브러리, 검색 실험실, 운영 지표
-- UI localization: backend seed 데이터가 영어여도 사용자명, 부서, 문서명, provider, 상태 라벨을 한국어로 표시
-- Search Console: live `/api/retrieve` and `/api/answer` calls with persona-based refresh, cited answer, citation list, and evidence panel
-- Knowledge Library: live `/api/documents` and `/api/documents/{document_id}` data with document detail and chunk previews
-- Admin workflow: admin-role document replacement/deletion, synchronous indexing status, append-only audit log API
-- Admin UI controls: Knowledge Library에서 admin persona로 document update/delete와 audit log 조회를 조작하고, non-admin persona는 읽기 전용 상태를 표시
-- Retrieval Lab: live `/api/retrieve` debugging with query, top-k, score threshold, persona, score, and access reason
-- Operations: query log 기반 `/api/metrics/summary`, `/api/metrics/trend`, `/api/queries/recent`, `/api/queries/{query_id}`, `/api/evidence/top`, persisted `/api/eval-runs` with usage, latency, cost estimate, retrieval hit, zero-result rate, daily retrieval/answer trend, recent query rows, selected query detail, top evidence documents, and eval history
-- Eval: `golden-demo` question set, fake-provider retrieval hit and citation coverage report
-- Demo personas: 김민아, 박준, 이하나, 최서진
-- Portfolio screenshots: `docs/assets/operations-demo-ko-v13-desktop.jpg` 1440x1650, `docs/assets/operations-demo-ko-v13-mobile-overview.jpg` 500x1400, `docs/assets/operations-demo-ko-v13-mobile-full-page.jpg` 500x2783, `docs/assets/knowledge-admin-demo-ko-v1-desktop.jpg` 1440x1350
-- Static portfolio demo mode: `VITE_DEMO_MODE=static` build avoids `/api` calls and serves read-only fake-provider data from `web/dist`
-- Public demo: `https://enterprise-policy-rag.vercel.app`
-- GitHub repository: `https://github.com/cyson21/enterprise-policy-rag`
-- Vercel Git integration: connected to `cyson21/enterprise-policy-rag` for push-based deployments
-- Auth UI status: top bar shows the current auth session mode while keeping persona selection for demo scenarios
-- Tests: chunking, fake embedding, fake answer, permission filter, retrieval-only API flow, persona API, document API, auth context/OIDC JWT API, answer API, eval API, retrieval metadata API, query log metrics/trend/detail, evidence persistence, eval persistence, PostgreSQL repository integration, controlled OpenAI live smoke guard, frontend shell/static smoke
-
-기본 로컬/CI 경로는 계속 API key 없이 fake provider로 동작합니다.
-
-## Product Screen Plan
-
-필수 화면은 4개로 제한합니다.
-
-| 화면 | 목적 |
+| 조건 | 보호 규칙 |
 |---|---|
-| 검색 콘솔 | 직원이 질문하고 권한 내 검색 결과, 답변, 근거를 확인 |
-| 지식 라이브러리 | 문서 등록, chunk 상태, visibility/department/owner 관리 |
-| 검색 실험실 | top-k, score threshold, persona별 retrieval 품질 디버깅 |
-| 운영 지표 | query, latency, cost estimate, eval 품질 지표 확인 |
+| 다른 workspace 요청 | session 범위와 다르면 `403`으로 거절해야 함 |
+| 비공개·타 부서 문서 | retrieval 후보와 citation에 포함되지 않아야 함 |
+| 검색 근거 없음 | LLM을 호출하지 않고 `insufficient_evidence`를 반환해야 함 |
+| 외부 provider 미설정 | fake provider 경로로 재현 가능해야 함 |
+| 정적 공개 데모 | FastAPI·PostgreSQL·OpenAI 호출 없이 fixture만 렌더링해야 함 |
 
-## Local Verification
+## 검증 결과
+
+| 검증 | 확인 결과 |
+|---|---|
+| 인증 gate | session workspace 우선, 본문 권한 값 무시, workspace 불일치 거절을 확인 |
+| 메모리 권한 검색 | 다른 workspace·부서·비공개 문서를 retrieval 결과에서 제외 |
+| 근거 부족 | citation 후보가 없으면 provider를 호출하지 않고 거절 사유 반환 |
+| provider 선택 | 기본 fake provider와 명시적 OpenAI Responses 구성을 분리 |
+| 조회·평가 | 지연, 검색 수, 추정 token·cost와 3개 고정 질문의 적중·citation 결과를 기록 |
+| 정적 웹 | fixture build가 `/api` 의존 없이 렌더링되는지 browser smoke로 확인 |
+
+PostgreSQL 권한 선필터 통합 테스트는 실제 PostgreSQL 환경에서 별도로 실행하며, 위 결과에는 메모리 저장소에서 재현한 권한 격리만 포함합니다.
+
+### 재현 가능한 검증 리포트
+
+GitHub Actions는 `pgvector/pgvector:pg16` 서비스에 프로젝트 스키마를 적용하고 `RUN_POSTGRES_TESTS=1`로 전체 pytest를 실행합니다. pytest JUnit XML과 이를 Python 표준 라이브러리만으로 변환한 `portfolio-evidence.json`을 함께 artifact로 보관하며, JSON에는 schema version, 프로젝트, 정확한 Git commit, UTC 생성 시각, 검증 범위, 전체·suite별 테스트 집계가 기록됩니다. OpenAI live smoke는 기존 `RUN_OPENAI_LIVE_SMOKE=1` opt-in 조건을 유지하므로 실제 키가 없는 CI에서는 외부 요청을 만들지 않습니다.
+
+로컬 비DB 결과도 같은 형식으로 생성할 수 있습니다.
 
 ```bash
+mkdir -p artifacts
+RUN_POSTGRES_TESTS=0 RUN_OPENAI_LIVE_SMOKE=0 pytest -q --junitxml=artifacts/pytest.xml
+python scripts/portfolio_evidence.py artifacts/pytest.xml \
+  --output artifacts/portfolio-evidence.json \
+  --scope "local pytest; PostgreSQL integration excluded; OpenAI live smoke opt-in"
+```
+
+## 대표 코드와 테스트
+
+- 코드: [repository.py](app/repository.py) - workspace, owner, public 범위, 부서 교집합을 SQL 선필터에 적용합니다.
+- 테스트: [test_retrieval_permissions.py](tests/test_retrieval_permissions.py) - 메모리 경로에서 workspace·부서·비공개 문서 격리를 검증합니다.
+
+## 실행
+
+Python 3.11 이상에서 기본 회귀를 실행합니다.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
 pytest -q
-python3 -m compileall -q app
-docker compose config -q
-docker compose -f docker-compose.yml -f docker-compose.low-resource.yml config -q
-pnpm web:smoke
+python -m compileall -q app
 ```
 
-표준 실행 환경에서는 개발 의존성을 설치한 뒤 앱을 실행합니다.
+웹은 동적 build와 정적 fixture build를 각각 검증합니다.
 
 ```bash
-python3 -m pip install -e ".[dev]"
-uvicorn app.main:app --reload
-corepack enable pnpm
-pnpm install
-pnpm web:dev
-```
-
-API key 없이도 테스트와 retrieval-only 로컬 검증이 가능해야 합니다.
-
-OIDC JWT provider는 명시적으로 켤 때만 사용합니다. 로컬/CI에서는 HS256 secret으로 외부 IdP 없이 검증할 수 있고, 실제 IdP는 `OIDC_JWKS_URL`을 사용합니다.
-
-```bash
-AUTH_CONTEXT_PROVIDER=oidc_jwt \
-OIDC_ISSUER=https://idp.example.test/ \
-OIDC_AUDIENCE=enterprise-policy-rag \
-OIDC_HS256_SECRET=local-oidc-secret-with-32-bytes-min \
-uvicorn app.main:app --reload
-```
-
-Frontend 명령은 저장소 루트에서 실행합니다.
-
-```bash
-pnpm check:package-manager
+corepack enable
+pnpm install --frozen-lockfile
 pnpm web:smoke
 pnpm web:build
 pnpm web:build:static
 pnpm web:smoke:static
 ```
 
-OpenAI live smoke는 API key가 있을 때만 수동으로 실행합니다. `.env.local`은 git ignore 대상이며 출력은 provider/model/latency 같은 safe metadata만 남깁니다.
+PostgreSQL과 인증 모드는 [로컬 실행](docs/runbooks/local-demo.md)의 선택 절차를 따릅니다.
 
-```bash
-RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py
-```
+## 제한 사항
 
-PostgreSQL repository 통합 테스트는 Docker Postgres가 떠 있고 Python 환경에 `psycopg`가 설치된 경우에만 실행합니다. Docker Desktop 대신 Colima를 쓰면 낮은 CPU/RAM으로 검증할 수 있습니다.
-
-```bash
-HOMEBREW_NO_AUTO_UPDATE=1 brew install colima
-colima start --cpu 1 --memory 1 --disk 10 --vm-type=vz --mount-type=virtiofs --runtime=docker
-python3 -m pip install 'psycopg[binary]>=3.2,<4.0'
-docker compose -f docker-compose.yml -f docker-compose.low-resource.yml up -d postgres
-```
-
-기존 volume에 schema가 이미 만들어진 뒤 새 테이블이 추가된 경우에는 init SQL을 idempotent하게 다시 적용합니다.
-
-```bash
-docker exec enterprise-policy-rag-postgres \
-  psql -U rag_app -d enterprise_policy_rag \
-  -v ON_ERROR_STOP=1 \
-  -f /docker-entrypoint-initdb.d/001_schema.sql
-```
-
-```bash
-RUN_POSTGRES_TESTS=1 \
-DATABASE_URL=postgresql://rag_app:rag_app_password@127.0.0.1:5432/enterprise_policy_rag \
-pytest tests/test_postgres_repository_integration.py tests/test_postgres_runtime_integration.py -q
-```
-
-검증 후에는 자원 점유를 줄이기 위해 Postgres와 Colima를 내립니다.
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.low-resource.yml stop postgres
-colima stop
-```
-
-## Key Docs
-
-| 문서 | 내용 |
-|---|---|
-| [ADR 0001](docs/adr/0001-fake-provider-first-retrieval-rag.md) | fake provider first와 Docker 선택 검증 결정 |
-| [API and Data Model](docs/api-data-model.md) | 현재 API surface와 데이터 모델 초안 |
-| [Local Demo Runbook](docs/runbooks/local-demo.md) | API key 없는 로컬 실행과 검증 |
-| [Static Demo Deploy Runbook](docs/runbooks/static-demo-deploy.md) | 백엔드 없는 public read-only 데모 배포 절차 |
-| [Production Hardening Checklist](docs/runbooks/production-hardening-checklist.md) | 실제 production SaaS 전환 전 필수 보강 항목 |
-| [Portfolio One-Pager](docs/portfolio-one-pager.md) | 포트폴리오 요약 |
-| [Architecture SVG](docs/assets/architecture.svg) | 아키텍처 다이어그램 |
+- `demo` 인증은 요청 권한을 신뢰하며 `trusted_headers`는 외부 proxy가 헤더를 안전하게 관리한다는 전제가 필요합니다.
+- 공개 데모는 정적 fixture이며 FastAPI, PostgreSQL, pgvector, OpenAI의 실행 증거가 아닙니다.
+- token은 4글자당 1개로 근사하고 정적 단가를 적용하므로 실제 provider usage나 청구액이 아닙니다.
+- 3개 고정 질문 평가는 권한·검색·citation 회귀용이며 일반적인 RAG 품질 benchmark가 아닙니다.
+- 대규모 문서 ingest, production IdP 연동, 운영 부하, 자동 확장과 multi-region은 검증하지 않았습니다.

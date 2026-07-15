@@ -31,8 +31,10 @@ export function AppShell({
   onRouteChange,
   onPersonaChange,
 }: AppShellProps) {
+  // 현재 라우트 id로 페이지 컴포넌트를 찾아 렌더하고, 없으면 첫 번째 라우트로 fallback한다.
   const route = routes.find((item) => item.id === activeRoute) ?? routes[0];
   const Page = route.element as ComponentType<PageProps>;
+  // URL에서 전달된 persona id가 유효하지 않을 때의 방어적인 선택값이다.
   const activePersona = personas.find((persona) => persona.id === activePersonaId) ?? personas[0];
 
   return (
@@ -47,6 +49,7 @@ export function AppShell({
         </div>
 
         <nav className="nav-list">
+          {/* 라우트 배열 순서가 그대로 사이드바 버튼 순서이므로 화면 정합성 점검 포인트다. */}
           {routes.map((item) => {
             const Icon = item.icon;
             const selected = item.id === activeRoute;

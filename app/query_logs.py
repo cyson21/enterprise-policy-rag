@@ -1,3 +1,5 @@
+"""쿼리 로그 저장/조회 경계를 담당하는 모듈."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -54,6 +56,7 @@ class QueryLogRepository(Protocol):
 
 
 class InMemoryQueryLogRepository:
+    # 테스트 모드에서 쿼리 로그, retrieval 결과, citation 정보를 분리 저장해 조회/상세 화면을 구성한다.
     def __init__(self) -> None:
         self._sequence = 0
         self._answer_sequence = 0
@@ -63,6 +66,7 @@ class InMemoryQueryLogRepository:
         self._answers: list[dict[str, object]] = []
 
     def add_query_log(self, entry: QueryLogCreate) -> StoredQueryLog:
+        # create_at이 비어도 생성 시점 UTC를 기본값으로 두어 시간 축 집계를 안정화한다.
         self._sequence += 1
         stored = StoredQueryLog(
             id=f"query_{self._sequence:03d}",
@@ -79,6 +83,7 @@ class InMemoryQueryLogRepository:
         return logs[:limit]
 
     def add_retrieval_results(self, query_log_id: str, results: Sequence[RetrievalResult]) -> None:
+        # 한 번의 질의에 대해 여러 chunk 결과를 순서대로 스냅샷으로 남겨 후속 상세 뷰를 지원한다.
         for result in results:
             self._retrieval_results.append(
                 {
@@ -95,6 +100,7 @@ class InMemoryQueryLogRepository:
             )
 
     def add_answer_record(self, query_log_id: str, response: AnswerResponse) -> None:
+        # 답변 저장 시 answer와 citation 레코드를 분리해 조회수·상세 추적 요구사항을 각각 충족한다.
         log = self._find_log(query_log_id)
         if log is None:
             return
@@ -130,6 +136,7 @@ class InMemoryQueryLogRepository:
             )
 
     def list_top_evidence(self, workspace_id: str, limit: int = 10) -> list[TopEvidenceItem]:
+        # retrieval/citation 이벤트를 문서 단위로 집계해 운영에서 많이 참조된 evidence를 추려낸다.
         by_document: dict[str, dict[str, object]] = {}
         for row in self._retrieval_results:
             if row["workspace_id"] == workspace_id:
@@ -142,6 +149,7 @@ class InMemoryQueryLogRepository:
         return items[:limit]
 
     def list_query_trend(self, workspace_id: str, limit: int = 14) -> list[QueryTrendPoint]:
+        # 날짜별 retrieval/answer 빈도와 zero-result 지표를 계산해 운영 트렌드 그래프 입력을 만든다.
         by_date: dict[str, dict[str, int]] = {}
         for log in self._logs:
             if log.workspace_id != workspace_id:
@@ -202,6 +210,7 @@ class PostgresQueryLogRepository:
         self._connection = connection
 
     def add_query_log(self, entry: QueryLogCreate) -> StoredQueryLog:
+        # 워크스페이스 존재성 보장을 먼저 수행한 뒤 query log를 영속화해 외래키 실패를 줄인다.
         log_id = f"query_{uuid4().hex}"
         created_at = entry.created_at or _utc_now()
         with self._cursor() as cursor:
@@ -242,6 +251,7 @@ class PostgresQueryLogRepository:
         return StoredQueryLog(id=log_id, **entry.model_dump(exclude={"created_at"}), created_at=created_at)
 
     def list_query_logs(self, workspace_id: str, limit: int | None = None) -> list[StoredQueryLog]:
+        # limit에 따라 최신순 정렬 쿼리만 달리해 운영 화면 페이징 패턴과 단일 쿼리 플랜을 유지한다.
         params: tuple[object, ...]
         limit_clause = ""
         if limit is None:
@@ -412,6 +422,7 @@ class PostgresQueryLogRepository:
         self._connection.commit()
 
     def list_top_evidence(self, workspace_id: str, limit: int = 10) -> list[TopEvidenceItem]:
+        # PostgreSQL 집계 CTE로 retrieval/citation 점수를 통합해 문서 단위 대표 수치를 반환한다.
         with self._cursor() as cursor:
             cursor.execute(
                 """
@@ -440,6 +451,7 @@ class PostgresQueryLogRepository:
             return [_top_evidence_from_row(row) for row in cursor.fetchall()]
 
     def list_query_trend(self, workspace_id: str, limit: int = 14) -> list[QueryTrendPoint]:
+        # date bucket 단위로 mode별 건수를 만들고 zero-result를 분리해 지표가 과거 순으로 반환되도록 정렬한다.
         with self._cursor() as cursor:
             cursor.execute(
                 """
@@ -470,6 +482,7 @@ class PostgresQueryLogRepository:
 
 
 def build_metrics_summary(workspace_id: str, logs: Sequence[StoredQueryLog]) -> MetricsSummaryResponse:
+    # 검색이 전혀 없는 워크스페이스는 0 기반 지표로 반환해 divide-by-zero를 회피한다.
     if not logs:
         return MetricsSummaryResponse(
             workspace_id=workspace_id,
@@ -497,18 +510,21 @@ def build_metrics_summary(workspace_id: str, logs: Sequence[StoredQueryLog]) -> 
 
 
 def build_recent_queries(logs: Sequence[StoredQueryLog]) -> RecentQueriesResponse:
+    # 최근 질의 응답은 저장 순서를 그대로 노출해 디버깅에서 실제 요청 시퀀스를 추적하기 쉽게 한다.
     return RecentQueriesResponse(
         queries=[_recent_query_from_log(log) for log in logs]
     )
 
 
 def _nearest_rank_p95(values: Sequence[int]) -> int:
+    # Nearest-rank p95를 간단 구현하고, 0보다 큰 인덱스로 안전하게 접근한다.
     ordered = sorted(values)
     index = max(0, ceil(0.95 * len(ordered)) - 1)
     return ordered[index]
 
 
 def _utc_now() -> str:
+    # 초 단위 정밀도로 저장해 테스트 고정값과 비교 시 흔들림을 줄인다.
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 

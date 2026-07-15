@@ -39,11 +39,19 @@ Normal local tests run without `DATABASE_URL` so they stay API-key-free and Dock
 
 ## Provider Selection
 
+| Environment | Embedding provider | Notes |
+|---|---|---|
+| no `EMBEDDING_PROVIDER` | `FakeEmbeddingProvider` | default local and CI path; deterministic 64-dimension vectors |
+| `EMBEDDING_PROVIDER=fake` | `FakeEmbeddingProvider` | API-key-free |
+| `EMBEDDING_PROVIDER=openai` | `OpenAIEmbeddingProvider` + `OpenAIEmbeddingTransport` | requires `OPENAI_API_KEY`; uses `OPENAI_EMBEDDING_MODEL` default `text-embedding-3-small` with `dimensions=64` |
+
 | Environment | LLM provider | Notes |
 |---|---|---|
 | no `LLM_PROVIDER` | `FakeLLMProvider` | default local and CI path |
 | `LLM_PROVIDER=fake` | `FakeLLMProvider` | API-key-free |
 | `LLM_PROVIDER=openai` | `OpenAILLMProvider` + `OpenAIHTTPTransport` | requires `OPENAI_API_KEY`; live HTTP path is opt-in and not part of default verification |
+
+`OPENAI_TIMEOUT_SECONDS` configures both OpenAI embedding and LLM HTTP transports. The default is 20 seconds.
 
 Controlled live smoke is separate from default verification:
 
@@ -101,7 +109,7 @@ OIDC JWT env:
 | `department_ids` | string[] | current persona departments |
 | `query` | string | user question |
 | `top_k` | integer | `1..20` |
-| `score_threshold` | number | `0..1` |
+| `score_threshold` | number | `-1..1`; normalized dot product/cosine threshold |
 
 ### `AuthSession`
 
@@ -123,7 +131,7 @@ Used by `/auth/retrieve` and `/auth/answer`.
 |---|---|---|
 | `query` | string | user question |
 | `top_k` | integer | `1..20` |
-| `score_threshold` | number | `0..1` |
+| `score_threshold` | number | `-1..1`; normalized dot product/cosine threshold |
 
 If `user_id`, `workspace_id`, or `department_ids` are sent in this body, the session-bound endpoints ignore them and derive permission inputs from `AuthSession`.
 

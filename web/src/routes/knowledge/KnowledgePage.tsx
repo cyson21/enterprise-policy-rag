@@ -22,6 +22,7 @@ import {
 } from "../../utils/display";
 
 export function KnowledgePage({ workspaceId, activePersona }: PageProps) {
+  // 문서 목록/상세/관리 작업 상태를 분리해 권한 분기(읽기/쓰기)와 비동기 흐름을 명확히 유지한다.
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [detail, setDetail] = useState<DocumentDetailResponse | null>(null);
@@ -35,6 +36,7 @@ export function KnowledgePage({ workspaceId, activePersona }: PageProps) {
   const [adminBusy, setAdminBusy] = useState(false);
   const isAdmin = activePersona.role === "admin";
 
+  // workspace 변경 시 목록부터 조회하고 선택 ID가 유효한지 재검증한다.
   useEffect(() => {
     async function fetchDocuments() {
       setStatus("loading");
@@ -52,6 +54,7 @@ export function KnowledgePage({ workspaceId, activePersona }: PageProps) {
     void fetchDocuments();
   }, [workspaceId]);
 
+  // 선택 문서가 바뀌면 상세만 새로 조회해 네트워크 비용을 줄인다.
   useEffect(() => {
     async function fetchDetail() {
       if (!selectedDocumentId) {
@@ -65,6 +68,7 @@ export function KnowledgePage({ workspaceId, activePersona }: PageProps) {
     void fetchDetail();
   }, [selectedDocumentId, workspaceId]);
 
+  // 상세 응답이 바뀔 때 편집 폼을 동기화한다. 목록 선택이 없으면 폼은 초기값으로 초기화.
   useEffect(() => {
     if (!detail) {
       setAdminTitle("");
@@ -80,6 +84,7 @@ export function KnowledgePage({ workspaceId, activePersona }: PageProps) {
     setAdminDepartments(detail.document.department_ids.join(", "));
   }, [detail]);
 
+  // 관리자 권한이 아니면 감사 로그 갱신을 스킵하고 안내 메시지로 고정한다.
   useEffect(() => {
     if (!isAdmin) {
       setAdminLogs([]);
@@ -95,6 +100,7 @@ export function KnowledgePage({ workspaceId, activePersona }: PageProps) {
     [detail?.document, documents, selectedDocumentId],
   );
 
+  // 감사 로그 폴백 조회 및 상태 메시지 표시를 한곳에서 관리한다.
   async function refreshAuditLogs(nextStatus?: string) {
     if (!isAdmin) {
       return;
@@ -365,6 +371,7 @@ export function KnowledgePage({ workspaceId, activePersona }: PageProps) {
 }
 
 function splitDepartments(value: string) {
+  // comma 구분 입력을 정규화해 공백/중복 없이 department 배열로 변환한다.
   return Array.from(
     new Set(
       value
@@ -376,6 +383,7 @@ function splitDepartments(value: string) {
 }
 
 function formatAdminAction(action: string) {
+  // 감사 이벤트 문자열을 UI 라벨로 매핑해 텍스트 분기와 알 수 없는 action에 대한 fallback를 보완한다.
   if (action === "document.updated") {
     return "문서 업데이트";
   }
@@ -386,6 +394,7 @@ function formatAdminAction(action: string) {
 }
 
 function auditDocumentTitle(log: AdminAuditLog) {
+  // 로그 메타에서 제목을 우선 사용하고, 없으면 문서 ID로 fallback한다.
   const title = log.details.title;
   if (typeof title === "string" && title.trim()) {
     return formatDocumentTitle(title);

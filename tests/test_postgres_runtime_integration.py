@@ -1,3 +1,4 @@
+# PostgreSQL 런타임 통합 테스트: API 호출이 실제 저장소/로그/지표 경로를 일관되게 타는지 확인한다.
 import os
 from uuid import uuid4
 
