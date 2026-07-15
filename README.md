@@ -46,6 +46,20 @@ Static demo  -> bundled fixtures only; backend/database/provider와 분리
 
 PostgreSQL 권한 선필터 통합 테스트는 실제 PostgreSQL 환경에서 별도로 실행하며, 위 결과에는 메모리 저장소에서 재현한 권한 격리만 포함합니다.
 
+### 재현 가능한 검증 리포트
+
+GitHub Actions는 `pgvector/pgvector:pg16` 서비스에 프로젝트 스키마를 적용하고 `RUN_POSTGRES_TESTS=1`로 전체 pytest를 실행합니다. pytest JUnit XML과 이를 Python 표준 라이브러리만으로 변환한 `portfolio-evidence.json`을 함께 artifact로 보관하며, JSON에는 schema version, 프로젝트, 정확한 Git commit, UTC 생성 시각, 검증 범위, 전체·suite별 테스트 집계가 기록됩니다. OpenAI live smoke는 기존 `RUN_OPENAI_LIVE_SMOKE=1` opt-in 조건을 유지하므로 실제 키가 없는 CI에서는 외부 요청을 만들지 않습니다.
+
+로컬 비DB 결과도 같은 형식으로 생성할 수 있습니다.
+
+```bash
+mkdir -p artifacts
+RUN_POSTGRES_TESTS=0 RUN_OPENAI_LIVE_SMOKE=0 pytest -q --junitxml=artifacts/pytest.xml
+python scripts/portfolio_evidence.py artifacts/pytest.xml \
+  --output artifacts/portfolio-evidence.json \
+  --scope "local pytest; PostgreSQL integration excluded; OpenAI live smoke opt-in"
+```
+
 ## 대표 코드와 테스트
 
 - 코드: [repository.py](app/repository.py) - workspace, owner, public 범위, 부서 교집합을 SQL 선필터에 적용합니다.
