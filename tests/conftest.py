@@ -11,9 +11,9 @@ import pytest
 def postgres_connection() -> Iterator[object]:
     if os.getenv("RUN_POSTGRES_TESTS") != "1":
         pytest.skip("set RUN_POSTGRES_TESTS=1 to run PostgreSQL integration tests")
-    database_url = os.getenv("DATABASE_URL")
+    database_url = os.getenv("TEST_DATABASE_URL")
     if not database_url:
-        pytest.fail("DATABASE_URL is required when RUN_POSTGRES_TESTS=1")
+        pytest.fail("TEST_DATABASE_URL is required when RUN_POSTGRES_TESTS=1")
     psycopg = pytest.importorskip("psycopg")
     connection = psycopg.connect(database_url, connect_timeout=5)
     with connection.cursor() as cursor:

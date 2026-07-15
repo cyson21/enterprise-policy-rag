@@ -31,7 +31,7 @@ jobs:
           --health-retries 10
 
     env:
-      DATABASE_URL: postgresql://rag_app:rag_app_password@127.0.0.1:5432/enterprise_policy_rag
+      TEST_DATABASE_URL: postgresql://rag_app:rag_app_password@127.0.0.1:5432/enterprise_policy_rag
       RUN_POSTGRES_TESTS: "1"
       RUN_OPENAI_LIVE_SMOKE: "0"
       PGCONNECT_TIMEOUT: "5"
@@ -58,6 +58,8 @@ jobs:
         run: python -c "import app; print(app.__file__)"
 
       - name: Initialize PostgreSQL schema
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
         run: |
           python - <<'PY'
           import os
@@ -71,6 +73,8 @@ jobs:
           PY
 
       - name: Verify PostgreSQL and pgvector schema
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
         run: >-
           python scripts/verify_postgres_schema.py
           --output artifacts/postgres-schema.json
@@ -91,6 +95,8 @@ jobs:
       - name: Diagnose PostgreSQL job failure
         if: failure()
         shell: bash
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
         run: |
           python scripts/verify_postgres_schema.py --output artifacts/postgres-schema-failure.json || true
           docker ps -a

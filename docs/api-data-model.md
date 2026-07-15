@@ -35,7 +35,7 @@ Date: 2026-05-21
 | no `DATABASE_URL` | in-memory | in-memory | in-memory |
 | `DATABASE_URL` set | PostgreSQL | PostgreSQL | PostgreSQL |
 
-Normal local tests run without `DATABASE_URL` so they stay API-key-free and Docker-free. PostgreSQL integration tests set `RUN_POSTGRES_TESTS=1` and `DATABASE_URL`.
+Normal local tests run without `DATABASE_URL` so they stay API-key-free and Docker-free. PostgreSQL integration tests keep the connection in `TEST_DATABASE_URL` and inject `DATABASE_URL` only into the runtime integration case.
 
 ## Provider Selection
 

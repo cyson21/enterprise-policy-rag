@@ -34,3 +34,6 @@ packages = ["app"]
 asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = [
+  "postgres: tests that require DATABASE_URL and a live PostgreSQL/pgvector service",
+]

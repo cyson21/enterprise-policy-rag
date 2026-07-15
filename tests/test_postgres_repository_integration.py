@@ -12,10 +12,13 @@ from app.repository import PostgresPolicyRepository
 from app.retrieval import RetrievalService
 
 
-pytestmark = pytest.mark.skipif(
-    os.getenv("RUN_POSTGRES_TESTS") != "1",
-    reason="set RUN_POSTGRES_TESTS=1 with DATABASE_URL to run PostgreSQL repository integration",
-)
+pytestmark = [
+    pytest.mark.postgres,
+    pytest.mark.skipif(
+        os.getenv("RUN_POSTGRES_TESTS") != "1",
+        reason="set RUN_POSTGRES_TESTS=1 with TEST_DATABASE_URL to run PostgreSQL repository integration",
+    ),
+]
 
 
 def test_postgres_repository_round_trip_retrieval(

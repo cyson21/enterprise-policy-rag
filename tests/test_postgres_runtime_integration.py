@@ -8,10 +8,13 @@ from httpx import ASGITransport, AsyncClient
 from app.main import create_app
 
 
-pytestmark = pytest.mark.skipif(
-    os.getenv("RUN_POSTGRES_TESTS") != "1",
-    reason="set RUN_POSTGRES_TESTS=1 with DATABASE_URL to run PostgreSQL runtime integration",
-)
+pytestmark = [
+    pytest.mark.postgres,
+    pytest.mark.skipif(
+        os.getenv("RUN_POSTGRES_TESTS") != "1",
+        reason="set RUN_POSTGRES_TESTS=1 with TEST_DATABASE_URL to run PostgreSQL runtime integration",
+    ),
+]
 
 
 @pytest.mark.asyncio
@@ -19,7 +22,7 @@ async def test_app_runtime_uses_postgres_for_documents_retrieval_and_query_logs(
     monkeypatch,
     postgres_workspace_factory: Callable[[str], str],
 ):
-    database_url = os.environ["DATABASE_URL"]
+    database_url = os.environ["TEST_DATABASE_URL"]
     workspace_id = postgres_workspace_factory("runtime")
     monkeypatch.setenv("DATABASE_URL", database_url)
     app = create_app(seed_demo=False)

@@ -107,7 +107,7 @@ docker exec enterprise-policy-rag-postgres \
   -v ON_ERROR_STOP=1 \
   -f /docker-entrypoint-initdb.d/001_schema.sql
 RUN_POSTGRES_TESTS=1 \
-DATABASE_URL=postgresql://rag_app:rag_app_password@127.0.0.1:5432/enterprise_policy_rag \
+TEST_DATABASE_URL=postgresql://rag_app:rag_app_password@127.0.0.1:5432/enterprise_policy_rag \
 pytest tests/test_postgres_repository_integration.py tests/test_postgres_runtime_integration.py -q
 docker compose -f docker-compose.yml -f docker-compose.low-resource.yml stop postgres
 colima stop
