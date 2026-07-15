@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from pydantic import ValidationError
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from app.auth import AuthContextError, SessionSearchQuery, build_auth_context_provider_from_env
 from app.demo_data import seed_demo_state
@@ -27,7 +29,7 @@ def create_app(seed_demo: bool = True, require_auth: bool | None = None) -> Any:
     if seed_demo:
         seed_demo_state(services)
     try:
-        from fastapi import FastAPI, HTTPException, Request
+        from fastapi import FastAPI, HTTPException
 
         app = FastAPI(
             title="Enterprise Policy RAG",
@@ -218,7 +220,6 @@ def create_app(seed_demo: bool = True, require_auth: bool | None = None) -> Any:
 
 def _create_starlette_fallback(services: Any, auth_provider: Any, require_auth: bool) -> Any:
     from starlette.applications import Starlette
-    from starlette.responses import JSONResponse
     from starlette.routing import Route
 
     def scoped_workspace_or_error(headers: Any, requested_workspace_id: str | None) -> Any:

@@ -1,4 +1,6 @@
 # 런타임 DI 테스트: DATABASE_URL 존재 유무에 따른 저장소 교체를 검증한다.
+from typing import get_type_hints
+
 import pytest
 
 from app.query_logs import InMemoryQueryLogRepository
@@ -113,3 +115,12 @@ async def test_app_lifespan_closes_runtime_services_once(monkeypatch):
         assert services.close_count == 0
 
     assert services.close_count == 1
+
+
+def test_route_annotations_resolve_from_module_scope():
+    import app.main as main
+
+    for route in main.app.routes:
+        endpoint = getattr(route, "endpoint", None)
+        if endpoint is not None:
+            get_type_hints(endpoint)
