@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 # 프로젝트 메타데이터는 실행 환경/의존성 관리 기준만 정의하며 테스트 로직은 별도 테스트 코드에 둔다.
 name = "enterprise-policy-rag"
@@ -8,7 +12,6 @@ dependencies = [
   "fastapi>=0.115,<1.0",
   "PyJWT[crypto]>=2.8,<3.0",
   "pydantic>=2.7,<3.0",
-  "psycopg[binary]>=3.2,<4.0",
   "uvicorn[standard]>=0.30,<1.0",
 ]
 
@@ -19,6 +22,12 @@ dev = [
   "pytest>=8.0,<10.0",
   "pytest-asyncio>=0.23,<2.0",
 ]
+postgres = [
+  "psycopg[binary]>=3.2,<4.0",
+]
+
+[tool.setuptools]
+packages = ["app"]
 
 [tool.pytest.ini_options]
 # 테스트 경로는 테스트 루트에서만 탐색하도록 고정해 CI 안정성을 확보한다.

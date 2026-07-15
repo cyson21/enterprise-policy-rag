@@ -203,11 +203,16 @@ class InMemoryQueryLogRepository:
 
 class PostgresQueryLogRepository:
     def __init__(self, dsn: str | None = None, connection: Any | None = None) -> None:
+        self._owns_connection = connection is None
         if connection is None:
             if psycopg is None:
                 raise RuntimeError("psycopg is required to use PostgresQueryLogRepository")
             connection = psycopg.connect(dsn)
         self._connection = connection
+
+    def close(self) -> None:
+        if self._owns_connection and not self._connection.closed:
+            self._connection.close()
 
     def add_query_log(self, entry: QueryLogCreate) -> StoredQueryLog:
         # 워크스페이스 존재성 보장을 먼저 수행한 뒤 query log를 영속화해 외래키 실패를 줄인다.

@@ -90,11 +90,7 @@ node scripts/run-web-task.mjs smoke
 node scripts/run-web-task.mjs build
 ```
 
-Expected current result:
-
-```text
-76 passed, 2 skipped
-```
+테스트 개수는 기능 추가에 따라 변하므로 고정하지 않습니다. 종료 코드와 생성한 JUnit evidence의 `result`, `totals`를 확인합니다.
 
 For the backend-free public demo build, see `docs/runbooks/static-demo-deploy.md`.
 
@@ -103,6 +99,7 @@ For the backend-free public demo build, see `docs/runbooks/static-demo-deploy.md
 Start Colima with a low-resource profile, then run only the PostgreSQL service.
 
 ```bash
+python3 -m pip install -e ".[dev,postgres]"
 colima start --cpu 1 --memory 1 --disk 10 --vm-type=vz --mount-type=virtiofs --runtime=docker
 docker compose -f docker-compose.yml -f docker-compose.low-resource.yml up -d postgres
 docker exec enterprise-policy-rag-postgres \

@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -15,9 +17,10 @@ from typing import Any, Sequence
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_VERSION = 1
-DEFAULT_PROJECT = ROOT.name
+DEFAULT_PROJECT = "enterprise-policy-rag"
 DEFAULT_SCOPE = "pytest"
 COUNT_FIELDS = ("tests", "failures", "errors", "skipped")
+GIT_COMMIT_PATTERN = re.compile(r"^[0-9a-fA-F]{7,64}$")
 
 
 class PortfolioEvidenceError(ValueError):
@@ -91,6 +94,11 @@ def _suite_counts(suite: ET.Element) -> dict[str, int]:
             raise PortfolioEvidenceError(
                 f"suite '{suite.get('name', 'unnamed')}' has negative {field} count"
             )
+        if _direct_children(suite, "testcase") and counts[field] != derived[field]:
+            raise PortfolioEvidenceError(
+                f"suite '{suite.get('name', 'unnamed')}' declares {field}={counts[field]} "
+                f"but contains {derived[field]}"
+            )
 
     passed = counts["tests"] - counts["failures"] - counts["errors"] - counts["skipped"]
     if passed < 0:
@@ -159,6 +167,32 @@ def _generated_at_utc() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _validate_generated_at_utc(value: str) -> str:
+    if not value.endswith("Z"):
+        raise PortfolioEvidenceError("generated_at_utc must use the UTC 'Z' suffix")
+    try:
+        parsed = datetime.fromisoformat(value.removesuffix("Z") + "+00:00")
+    except ValueError as exc:
+        raise PortfolioEvidenceError("generated_at_utc must be an ISO-8601 timestamp") from exc
+    if parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+        raise PortfolioEvidenceError("generated_at_utc must be UTC")
+    return value
+
+
+def _validated_commit(value: str) -> str:
+    commit = value.strip()
+    if not GIT_COMMIT_PATTERN.fullmatch(commit):
+        raise PortfolioEvidenceError("git_commit must be a 7-64 character hexadecimal revision")
+    return commit.lower()
+
+
+def _source_sha256(path: Path | str) -> str:
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    except OSError as exc:
+        raise PortfolioEvidenceError(f"failed to hash JUnit XML '{path}': {exc}") from exc
+
+
 def build_report(
     junit_xml: Path | str,
     *,
@@ -166,10 +200,14 @@ def build_report(
     git_commit: str | None = None,
     generated_at_utc: str | None = None,
     scope: str = DEFAULT_SCOPE,
+    postgresql_pgvector: bool = False,
+    openai_live_smoke: bool = False,
 ) -> dict[str, Any]:
-    if not project.strip():
+    project = project.strip()
+    scope = scope.strip()
+    if not project:
         raise PortfolioEvidenceError("project must not be empty")
-    if not scope.strip():
+    if not scope:
         raise PortfolioEvidenceError("scope must not be empty")
 
     suites = parse_junit_xml(junit_xml)
@@ -177,12 +215,21 @@ def build_report(
         field: sum(suite[field] for suite in suites)
         for field in (*COUNT_FIELDS, "passed")
     }
+    result = "passed" if totals["failures"] == 0 and totals["errors"] == 0 else "failed"
     return {
         "schema_version": SCHEMA_VERSION,
         "project": project,
-        "git_commit": git_commit or _git_commit(),
-        "generated_at_utc": generated_at_utc or _generated_at_utc(),
+        "git_commit": _validated_commit(git_commit or _git_commit()),
+        "generated_at_utc": _validate_generated_at_utc(
+            generated_at_utc or _generated_at_utc()
+        ),
         "scope": scope,
+        "result": result,
+        "verification": {
+            "postgresql_pgvector": postgresql_pgvector,
+            "openai_live_smoke": openai_live_smoke,
+        },
+        "source_junit_sha256": _source_sha256(junit_xml),
         "totals": totals,
         "suites": suites,
     }
@@ -196,6 +243,7 @@ def write_report(path: Path | str, report: dict[str, Any]) -> None:
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     rendered = render_report(report)
+    temporary_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
             "w",
@@ -209,6 +257,9 @@ def write_report(path: Path | str, report: dict[str, Any]) -> None:
         temporary_path.replace(output_path)
     except OSError as exc:
         raise PortfolioEvidenceError(f"failed to write report '{output_path}': {exc}") from exc
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -220,6 +271,16 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--project", default=DEFAULT_PROJECT, help="project identifier")
     parser.add_argument("--scope", default=DEFAULT_SCOPE, help="human-readable verification scope")
     parser.add_argument("--git-commit", help="commit identifier; defaults to git rev-parse HEAD")
+    parser.add_argument(
+        "--postgresql-pgvector",
+        action="store_true",
+        help="record that PostgreSQL and pgvector integration tests were enabled",
+    )
+    parser.add_argument(
+        "--openai-live-smoke",
+        action="store_true",
+        help="record that the opt-in OpenAI live smoke test was enabled",
+    )
     parser.add_argument(
         "--generated-at-utc",
         help="UTC generation timestamp; defaults to the current time",
@@ -237,6 +298,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             git_commit=args.git_commit,
             generated_at_utc=args.generated_at_utc,
             scope=args.scope,
+            postgresql_pgvector=args.postgresql_pgvector,
+            openai_live_smoke=args.openai_live_smoke,
         )
         if args.output is None:
             sys.stdout.write(render_report(report))

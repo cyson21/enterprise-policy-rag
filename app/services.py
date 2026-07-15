@@ -56,6 +56,20 @@ class PolicyRagServices:
         self.embedding_provider = embedding_provider or FakeEmbeddingProvider()
         self.llm_provider = llm_provider
 
+    def close(self) -> None:
+        seen: set[int] = set()
+        for component in (
+            self.repository,
+            self.query_log_repository,
+            self.eval_run_repository,
+        ):
+            if id(component) in seen:
+                continue
+            seen.add(id(component))
+            close = getattr(component, "close", None)
+            if callable(close):
+                close()
+
     def ingest_document(self, payload: DocumentCreate) -> DocumentIngestResponse:
         # 업로드 즉시 chunking + embedding으로 검색에 필요한 형태만 저장해 검색 가능 상태로 만들고 응답한다.
         chunks = chunk_text(payload.content)

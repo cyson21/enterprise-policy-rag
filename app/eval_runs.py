@@ -42,11 +42,16 @@ class InMemoryEvalRunRepository:
 
 class PostgresEvalRunRepository:
     def __init__(self, dsn: str | None = None, connection: Any | None = None) -> None:
+        self._owns_connection = connection is None
         if connection is None:
             if psycopg is None:
                 raise RuntimeError("psycopg is required to use PostgresEvalRunRepository")
             connection = psycopg.connect(dsn)
         self._connection = connection
+
+    def close(self) -> None:
+        if self._owns_connection and not self._connection.closed:
+            self._connection.close()
 
     def add_eval_run(self, run: EvalRunResponse) -> EvalRunResponse:
         # 평가 실행 결과는 eval_runs와 케이스를 분리 저장해 분석 쿼리의 조회 범위를 최소화한다.

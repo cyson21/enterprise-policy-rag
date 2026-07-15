@@ -29,6 +29,8 @@ def create_app(seed_demo: bool = True, require_auth: bool | None = None) -> Any:
         from fastapi import FastAPI, HTTPException, Request
 
         app = FastAPI(title="Enterprise Policy RAG", version="0.1.0")
+        app.state.services = services
+        app.add_event_handler("shutdown", services.close)
         _configure_cors(app, os.environ)
 
         def guard_workspace(headers: Any, requested_workspace_id: str | None) -> str | None:

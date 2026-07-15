@@ -274,11 +274,16 @@ class PostgresPolicyRepository:
     """PostgreSQL + pgvector repository for the retrieval core."""
 
     def __init__(self, dsn: str | None = None, connection: Any | None = None) -> None:
+        self._owns_connection = connection is None
         if connection is None:
             if psycopg is None:
                 raise RuntimeError("psycopg is required to use PostgresPolicyRepository")
             connection = psycopg.connect(dsn)
         self._connection = connection
+
+    def close(self) -> None:
+        if self._owns_connection and not self._connection.closed:
+            self._connection.close()
 
     def add_document(
         self,
@@ -371,7 +376,9 @@ class PostgresPolicyRepository:
                     c.text,
                     c.embedding
                 FROM document_chunks c
-                JOIN documents d ON d.id = c.document_id
+                JOIN documents d
+                  ON d.id = c.document_id
+                 AND d.workspace_id = c.workspace_id
                 WHERE c.workspace_id = %s
                 ORDER BY c.document_id, c.chunk_index, c.id
                 """,
@@ -405,8 +412,11 @@ class PostgresPolicyRepository:
                     c.text,
                     c.embedding
                 FROM document_chunks c
-                JOIN documents d ON d.id = c.document_id
+                JOIN documents d
+                  ON d.id = c.document_id
+                 AND d.workspace_id = c.workspace_id
                 WHERE c.workspace_id = %s
+                  AND d.indexing_status = 'ready'
                   AND (
                     d.owner_user_id = %s
                     OR d.visibility = 'public'
@@ -494,7 +504,9 @@ class PostgresPolicyRepository:
                     c.text,
                     c.embedding
                 FROM document_chunks c
-                JOIN documents d ON d.id = c.document_id
+                JOIN documents d
+                  ON d.id = c.document_id
+                 AND d.workspace_id = c.workspace_id
                 WHERE c.workspace_id = %s AND c.document_id = %s
                 ORDER BY c.chunk_index, c.id
                 """,

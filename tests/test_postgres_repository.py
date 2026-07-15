@@ -117,6 +117,7 @@ def test_postgres_repository_maps_joined_chunks_for_retrieval():
     assert chunks[0].department_ids == ["security"]
     assert chunks[0].visibility == Visibility.DEPARTMENT
     assert chunks[0].embedding == [0.5, 0.25]
+    assert "d.workspace_id = c.workspace_id" in connection.statements[0][0]
 
 
 def test_postgres_repository_search_candidate_chunks_uses_vector_topk_and_permission_pushdown():
@@ -152,6 +153,8 @@ def test_postgres_repository_search_candidate_chunks_uses_vector_topk_and_permis
     assert len(chunks) == 1
     statement, params = connection.statements[0]
     assert "WHERE c.workspace_id = %s" in statement
+    assert "d.workspace_id = c.workspace_id" in statement
+    assert "d.indexing_status = 'ready'" in statement
     assert "d.owner_user_id = %s" in statement
     assert "d.visibility = 'public'" in statement
     assert "d.visibility = 'department' AND d.department_ids && %s::text[]" in statement

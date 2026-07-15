@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -34,7 +35,7 @@ def test_build_report_aggregates_suite_totals_and_sorts_suites(tmp_path):
 
     report = build_report(
         junit_xml,
-        git_commit="abc123",
+        git_commit="abcdef1",
         generated_at_utc="2026-07-15T00:00:00Z",
         scope="full pytest with PostgreSQL",
     )
@@ -42,9 +43,15 @@ def test_build_report_aggregates_suite_totals_and_sorts_suites(tmp_path):
     assert report == {
         "schema_version": 1,
         "project": "enterprise-policy-rag",
-        "git_commit": "abc123",
+        "git_commit": "abcdef1",
         "generated_at_utc": "2026-07-15T00:00:00Z",
         "scope": "full pytest with PostgreSQL",
+        "result": "failed",
+        "verification": {
+            "postgresql_pgvector": False,
+            "openai_live_smoke": False,
+        },
+        "source_junit_sha256": hashlib.sha256(junit_xml.read_bytes()).hexdigest(),
         "totals": {
             "tests": 5,
             "failures": 1,
@@ -151,6 +158,18 @@ def test_parse_junit_rejects_invalid_counts(tmp_path, attributes, message):
         parse_junit_xml(junit_xml)
 
 
+def test_parse_junit_rejects_declared_counts_that_disagree_with_cases(tmp_path):
+    junit_xml = _write_xml(
+        tmp_path,
+        '<testsuite name="pytest" tests="2" failures="0" errors="0" skipped="0">'
+        '<testcase name="only" />'
+        '</testsuite>',
+    )
+
+    with pytest.raises(PortfolioEvidenceError, match="declares tests=2 but contains 1"):
+        parse_junit_xml(junit_xml)
+
+
 def test_render_and_write_report_are_byte_stable(tmp_path):
     report = {"z": 1, "a": {"value": 2}}
     first_path = tmp_path / "first" / "report.json"
@@ -168,7 +187,7 @@ def test_build_report_uses_source_date_epoch_for_reproducible_timestamp(tmp_path
     junit_xml = _write_xml(tmp_path, '<testsuite name="pytest" tests="0" />')
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "0")
 
-    report = build_report(junit_xml, git_commit="abc123")
+    report = build_report(junit_xml, git_commit="abcdef1")
 
     assert report["generated_at_utc"] == "1970-01-01T00:00:00Z"
 
@@ -179,7 +198,50 @@ def test_build_report_rejects_invalid_source_date_epoch(tmp_path, monkeypatch, v
     monkeypatch.setenv("SOURCE_DATE_EPOCH", value)
 
     with pytest.raises(PortfolioEvidenceError, match="SOURCE_DATE_EPOCH"):
-        build_report(junit_xml, git_commit="abc123")
+        build_report(junit_xml, git_commit="abcdef1")
+
+
+def test_build_report_records_enabled_runtime_proof_and_junit_hash(tmp_path):
+    junit_xml = _write_xml(
+        tmp_path,
+        '<testsuite name="postgres" tests="1" failures="0" errors="0" skipped="0">'
+        '<testcase name="acl" />'
+        '</testsuite>',
+    )
+
+    report = build_report(
+        junit_xml,
+        git_commit="ABCDEF1",
+        generated_at_utc="2026-07-15T00:00:00Z",
+        postgresql_pgvector=True,
+    )
+
+    assert report["git_commit"] == "abcdef1"
+    assert report["result"] == "passed"
+    assert report["verification"] == {
+        "postgresql_pgvector": True,
+        "openai_live_smoke": False,
+    }
+    assert report["source_junit_sha256"] == hashlib.sha256(junit_xml.read_bytes()).hexdigest()
+
+
+@pytest.mark.parametrize(
+    "git_commit, generated_at_utc, message",
+    [
+        ("not-a-commit", "2026-07-15T00:00:00Z", "git_commit"),
+        ("abcdef1", "2026-07-15T00:00:00", "UTC 'Z' suffix"),
+        ("abcdef1", "not-a-timeZ", "ISO-8601"),
+    ],
+)
+def test_build_report_rejects_invalid_provenance(tmp_path, git_commit, generated_at_utc, message):
+    junit_xml = _write_xml(tmp_path, '<testsuite name="pytest" tests="0" />')
+
+    with pytest.raises(PortfolioEvidenceError, match=message):
+        build_report(
+            junit_xml,
+            git_commit=git_commit,
+            generated_at_utc=generated_at_utc,
+        )
 
 
 def test_main_fails_when_junit_argument_is_missing():
