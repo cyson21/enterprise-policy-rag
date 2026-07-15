@@ -2,6 +2,10 @@
 
 Enterprise Policy RAG는 사내 정책 문서를 사용자·부서·공개 범위에 따라 검색하고, 검색 근거를 포함한 답변과 조회 기록을 제공하는 FastAPI 백엔드 프로젝트입니다. 기본 경로는 고정 결과를 반환하는 테스트용 임베딩·LLM과 메모리 저장소로 동작하며, PostgreSQL/pgvector와 OpenAI 연동은 명시적으로 선택한 경우에만 사용합니다. 기본 데모 모드는 인증을 강제하지 않으므로 운영 인증이 아니라 권한 검색 흐름을 재현하기 위한 환경입니다.
 
+## 포트폴리오 링크
+
+- [웹 사례](https://cyson21.github.io/projects/enterprise-policy-rag/) · [공개 데모](https://enterprise-policy-rag.vercel.app/) · [전체 포트폴리오 PDF](https://github.com/cyson21/portfolio-hub/releases/download/latest/portfolio-complete.pdf) · [최신 이력서](https://github.com/cyson21/portfolio-hub/releases/download/latest/resume.pdf)
+
 ## 한눈에 보기
 
 | 항목 | 내용 |
