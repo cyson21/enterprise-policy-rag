@@ -82,6 +82,53 @@ pnpm web:smoke:static
 
 PostgreSQL과 인증 모드는 [로컬 실행](docs/runbooks/local-demo.md)의 선택 절차를 따릅니다.
 
+```bash
+RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py
+```
+
+PostgreSQL repository 통합 테스트는 Docker Postgres가 떠 있고 Python 환경에 `psycopg`가 설치된 경우에만 실행합니다. Docker Desktop 대신 Colima를 쓰면 낮은 CPU/RAM으로 검증할 수 있습니다.
+
+```bash
+HOMEBREW_NO_AUTO_UPDATE=1 brew install colima
+colima start --cpu 1 --memory 1 --disk 10 --vm-type=vz --mount-type=virtiofs --runtime=docker
+python3 -m pip install 'psycopg[binary]>=3.2,<4.0'
+docker compose -f docker-compose.yml -f docker-compose.low-resource.yml up -d postgres
+```
+
+기존 volume에 schema가 이미 만들어진 뒤 새 테이블이 추가된 경우에는 init SQL을 idempotent하게 다시 적용합니다.
+
+```bash
+docker exec enterprise-policy-rag-postgres \
+  psql -U rag_app -d enterprise_policy_rag \
+  -v ON_ERROR_STOP=1 \
+  -f /docker-entrypoint-initdb.d/001_schema.sql
+```
+
+```bash
+RUN_POSTGRES_TESTS=1 \
+DATABASE_URL=postgresql://rag_app:rag_app_password@127.0.0.1:5432/enterprise_policy_rag \
+pytest tests/test_postgres_repository_integration.py tests/test_postgres_runtime_integration.py -q
+```
+
+검증 후에는 자원 점유를 줄이기 위해 Postgres와 Colima를 내립니다.
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.low-resource.yml stop postgres
+colima stop
+```
+
+## Key Docs
+
+| 문서 | 내용 |
+|---|---|
+| [ADR 0001](docs/adr/0001-fake-provider-first-retrieval-rag.md) | fake provider first와 Docker 선택 검증 결정 |
+| [API and Data Model](docs/api-data-model.md) | 현재 API surface와 데이터 모델 초안 |
+| [Local Demo Runbook](docs/runbooks/local-demo.md) | API key 없는 로컬 실행과 검증 |
+| [Static Demo Deploy Runbook](docs/runbooks/static-demo-deploy.md) | 백엔드 없는 public read-only 데모 배포 절차 |
+| [Production Hardening Checklist](docs/runbooks/production-hardening-checklist.md) | 실제 production SaaS 전환 전 필수 보강 항목 |
+| [Portfolio One-Pager](docs/portfolio-one-pager.md) | 포트폴리오 요약 |
+| [Architecture SVG](docs/assets/architecture.svg) | 아키텍처 다이어그램 |
+
 ## 제한 사항
 
 - `demo` 인증은 요청 권한을 신뢰하며 `trusted_headers`는 앞단 서버가 헤더를 안전하게 관리한다는 전제가 필요합니다.
