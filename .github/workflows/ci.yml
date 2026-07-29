@@ -150,6 +150,13 @@ jobs:
       - name: Install dependencies with frozen lockfile
         run: pnpm install --frozen-lockfile
 
+      - name: Set up Chrome for static smoke
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+          install-dependencies: true
+
       - name: Run dynamic web smoke
         run: pnpm web:smoke
 
@@ -160,4 +167,6 @@ jobs:
         run: pnpm web:build:static
 
       - name: Run static web smoke
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
         run: pnpm web:smoke:static
