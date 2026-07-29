@@ -157,6 +157,14 @@ jobs:
           chrome-version: stable
           install-dependencies: true
 
+      - name: Prepare Chrome launcher for Linux CI sandbox
+        run: |
+          {
+            echo '#!/usr/bin/env bash'
+            echo "exec '${{ steps.setup-chrome.outputs.chrome-path }}' --no-sandbox --disable-dev-shm-usage \"\$@\""
+          } > "$RUNNER_TEMP/chrome-ci"
+          chmod +x "$RUNNER_TEMP/chrome-ci"
+
       - name: Run dynamic web smoke
         run: pnpm web:smoke
 
@@ -168,5 +176,5 @@ jobs:
 
       - name: Run static web smoke
         env:
-          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROME_PATH: ${{ runner.temp }}/chrome-ci
         run: pnpm web:smoke:static
