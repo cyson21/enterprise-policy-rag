@@ -117,3 +117,64 @@ jobs:
             artifacts/postgres-schema-failure.json
           if-no-files-found: warn
           retention-days: 14
+
+  web:
+    name: web build and smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Enable Corepack (pnpm from packageManager)
+        run: corepack enable
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies with frozen lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Chrome for static smoke
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: stable
+          install-dependencies: true
+
+      - name: Prepare Chrome launcher for Linux CI sandbox
+        run: |
+          {
+            echo '#!/usr/bin/env bash'
+            echo "exec '${{ steps.setup-chrome.outputs.chrome-path }}' --no-sandbox --disable-dev-shm-usage \"\$@\""
+          } > "$RUNNER_TEMP/chrome-ci"
+          chmod +x "$RUNNER_TEMP/chrome-ci"
+
+      - name: Run dynamic web smoke
+        run: pnpm web:smoke
+
+      - name: Build dynamic web
+        run: pnpm web:build
+
+      - name: Build static web
+        run: pnpm web:build:static
+
+      - name: Run static web smoke
+        env:
+          CHROME_PATH: ${{ runner.temp }}/chrome-ci
+        run: pnpm web:smoke:static
