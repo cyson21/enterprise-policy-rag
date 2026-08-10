@@ -86,11 +86,12 @@ PostgreSQL과 인증 모드는 [로컬 실행](docs/runbooks/local-demo.md)의 �
 RUN_OPENAI_LIVE_SMOKE=1 python3 scripts/openai_live_smoke.py
 ```
 
-PostgreSQL repository 통합 테스트는 Docker Postgres가 떠 있고 Python 환경에 `psycopg`가 설치된 경우에만 실행합니다. Docker Desktop 대신 Colima를 쓰면 낮은 CPU/RAM으로 검증할 수 있습니다.
+PostgreSQL repository 통합 테스트는 Docker Postgres가 떠 있고, 위 기본 회귀 절의 `python -m pip install -e ".[dev]"`로 base 패키지(FastAPI 포함)가 이미 설치된 Python 환경에 `psycopg`를 추가한 경우에만 실행합니다. `psycopg`만 설치하고 base를 건너뛰면 FastAPI가 없어 `create_app`이 Starlette fallback으로 빠지고, 테스트에서 `AttributeError: 'State' object has no attribute 'services'`가 납니다. Docker Desktop 대신 Colima를 쓰면 낮은 CPU/RAM으로 검증할 수 있습니다.
 
 ```bash
 HOMEBREW_NO_AUTO_UPDATE=1 brew install colima
 colima start --cpu 1 --memory 1 --disk 10 --vm-type=vz --mount-type=virtiofs --runtime=docker
+# 선행: 위 실행 절의 venv 활성화와 `python -m pip install -e ".[dev]"`
 python3 -m pip install 'psycopg[binary]>=3.2,<4.0'
 docker compose -f docker-compose.yml -f docker-compose.low-resource.yml up -d postgres
 ```
