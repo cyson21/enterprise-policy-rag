@@ -8,6 +8,24 @@
 
 [웹 사례](https://cyson21.github.io/projects/enterprise-policy-rag/) · [공개 데모](https://enterprise-policy-rag.vercel.app/) · [전체 포트폴리오 PDF](https://github.com/cyson21/portfolio-hub/releases/download/latest/portfolio-complete.pdf) · [최신 이력서](https://github.com/cyson21/portfolio-hub/releases/download/latest/resume.pdf)
 
+## 기술 범위
+
+### Core / 검증
+
+- Python
+- FastAPI
+- In-memory 저장소
+- Deterministic/Fake Embedding
+- Fake Provider
+
+### Optional Integration
+
+- PostgreSQL
+- pgvector
+- OpenAI
+
+기본 실행과 회귀 검증은 외부 서비스 없이 같은 결과를 재현하는 Core 경로를 기준으로 합니다. PostgreSQL·pgvector·OpenAI는 선택적 연동 경계이며, 이 표기가 운영 환경에서 해당 기술을 사용했다는 의미는 아닙니다.
+
 ## 문제
 
 검색 후 애플리케이션에서 권한 없는 문서를 제거하면 이미 민감한 후보가 검색 계층을 통과합니다. 또한 근거가 없는 질문도 LLM에 전달하면 그럴듯한 답변이 생성됩니다. 검색 후보를 만들기 전에 권한 범위를 적용하고 근거가 부족하면 답변을 명시적으로 거절해야 합니다.
