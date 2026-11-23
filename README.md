@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/cyson21/enterprise-policy-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/cyson21/enterprise-policy-rag/actions/workflows/ci.yml)
 
-사내 규정 문서를 검색해서 질문에 답하는 FastAPI RAG입니다. 볼 권한이 있는 문서만 검색하고, 근거 문서가 있을 때만 답변과 출처를 돌려줍니다. 백엔드 API부터 React 관리 화면까지 혼자 진행한 개인 프로젝트입니다.
+문서 접근 권한을 검색 후보에 먼저 적용하고, 근거가 없으면 모델 호출 전에 답변을 거절하는 FastAPI 프로젝트입니다. 기본 실행은 테스트 모델을 사용하며, PostgreSQL·pgvector에서 권한이 섞인 문서의 검색 결과를 별도로 검증합니다.
 
-[포트폴리오](https://cyson21.github.io/projects/enterprise-policy-rag/) · [데모](https://enterprise-policy-rag.vercel.app/) · [이력서](https://cyson21.github.io/downloads/resume.pdf)
+[검색 코드](app/retrieval.py) · [PostgreSQL 통합 테스트](tests/test_postgres_repository_integration.py) · [정적 데모](https://enterprise-policy-rag.vercel.app/)
 
 ## 기술 구성
 
@@ -144,11 +144,4 @@ colima stop
 - 고정 질문 평가는 권한, 검색, 출처가 그대로인지 보는 용도이지 RAG 품질 평가가 아닙니다.
 - 대량 문서 수집, 사내 IdP 연동, 대규모 부하, 자동 확장, 다중 리전은 해 보지 않았습니다.
 
-## 관련 프로젝트와 공개 자료
-
-이 저장소의 코드·실행·테스트는 이 저장소에서 관리합니다. [웹 포트폴리오의 프로젝트 설명](https://cyson21.github.io/projects/enterprise-policy-rag/)에서 구현 근거를, [공개 웹사이트](https://cyson21.github.io/)에서 전체 공개 자료를 확인할 수 있습니다.
-
-- 관련 주제: [ai-gateway](https://github.com/cyson21/ai-gateway) — LLM 호출 인증·비용·캐시·폴백 정책 비교.
-- 최신 제출 파일: [이력서 PDF](https://cyson21.github.io/downloads/resume.pdf) · [경력기술서 PDF](https://cyson21.github.io/downloads/career-description.pdf).
-
-위 관련 저장소는 별도로 실행하는 개인 프로젝트입니다. 서로의 서비스를 순서대로 띄우거나 실제 API·메시지로 연결한 E2E 체인이 구현됐다는 의미는 아닙니다. 구현·검증 범위가 바뀌면 이 README와 웹 프로젝트 문안을 함께 확인합니다.
+[웹 포트폴리오에서 프로젝트 상세 보기](https://cyson21.github.io/projects/enterprise-policy-rag/)
